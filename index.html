@@ -851,20 +851,21 @@ function renderGrid(g,kb,ag,revealAll,prevKb=null,targetEl=null){
       const show = revealAll||isVis;
       const showConfirmed = !revealAll&&!isVis&&(isConfP||isConfW);
       const icons=[];
-      if(isAg) icons.push({ic:'◉',glow:'var(--agent)'});
+      if(isAg) icons.push({ic:'◉',glow:'var(--agent)',color:'var(--agent)'});
       if(show){
-        if(cell.wumpus) icons.push({ic:'×',glow:'var(--wumpus)'});
-        if(cell.pit)    icons.push({ic:'○',glow:null});
-        if(cell.gold&&!(ag&&ag.gold)) icons.push({ic:'◆',glow:'var(--gold)'});
+        if(cell.wumpus) icons.push({ic:'×',glow:'var(--wumpus)',color:'var(--wumpus)'});
+        if(cell.pit)    icons.push({ic:'○',glow:null,color:'var(--pit)'});
+        if(cell.gold&&!(ag&&ag.gold)) icons.push({ic:'◆',glow:'var(--gold)',color:'var(--gold)'});
       } else if(showConfirmed){
-        if(isConfW) icons.push({ic:'×',glow:'var(--wumpus)'});
-        if(isConfP) icons.push({ic:'○',glow:null});
+        if(isConfW) icons.push({ic:'×',glow:'var(--wumpus)',color:'var(--wumpus)'});
+        if(isConfP) icons.push({ic:'○',glow:null,color:'var(--pit)'});
       }
 
-      icons.forEach(({ic,glow})=>{
+      icons.forEach(({ic,glow,color})=>{
         const s=document.createElement('span');
         s.className='ci'; s.textContent=ic;
         if(glow) s.style.filter=`drop-shadow(0 0 5px ${glow})`;
+        if(color) s.style.color=color;
         icDiv.appendChild(s);
       });
       div.appendChild(icDiv);
