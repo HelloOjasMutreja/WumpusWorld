@@ -139,7 +139,13 @@ body::after{
 .ptag.br{background:rgba(56,189,248,0.15);color:var(--breeze);bottom:2px;left:2px;}
 .ptag.st{background:rgba(251,146,60,0.15);color:var(--stench);bottom:2px;right:2px;}
 /* Direction arrow */
-.dirarr{position:absolute;top:2px;right:3px;font-size:0.62rem;color:var(--agent);z-index:4;line-height:1;}
+.dirarr{
+  position:absolute;top:2px;right:2px;z-index:4;line-height:1;font-weight:700;
+  font-size:0.72rem;color:var(--agent);
+  background:rgba(217,119,6,0.16);border:1px solid rgba(217,119,6,0.28);
+  border-radius:999px;padding:1px 3px 0 3px;
+  box-shadow:0 0 10px rgba(217,119,6,0.12);
+}
 /* Safe dot */
 .sdot{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--safe);opacity:0.7;z-index:3;}
 /* Reveal animation */
@@ -306,10 +312,10 @@ body::after{
       </div>
     </div>
     <div class="legend">
-      <div class="li"><span class="li-ic">🧭</span>Agent</div>
-      <div class="li"><span class="li-ic">👹</span>Wumpus</div>
-      <div class="li"><span class="li-ic">🕳️</span>Pit</div>
-      <div class="li"><span class="li-ic">💎</span>Gold</div>
+      <div class="li"><span class="li-ic" style="color:var(--agent)">◉</span>Agent</div>
+      <div class="li"><span class="li-ic" style="color:var(--wumpus)">×</span>Wumpus</div>
+      <div class="li"><span class="li-ic" style="color:var(--pit)">○</span>Pit</div>
+      <div class="li"><span class="li-ic" style="color:var(--gold)">◆</span>Gold</div>
       <div class="li"><div class="li-bar" style="border-color:var(--breeze);background:rgba(56,189,248,0.1)"></div>Breeze</div>
       <div class="li"><div class="li-bar" style="border-color:var(--stench);background:rgba(251,146,60,0.1)"></div>Stench</div>
       <div class="li"><div class="li-bar" style="border-color:var(--safe);background:rgba(52,211,153,0.1)"></div>Safe (inferred)</div>
@@ -339,11 +345,11 @@ body::after{
     <div class="card">
       <div class="ctitle">Current Percepts</div>
       <div class="percg">
-        <div class="pi st" id="p-stench"><span class="pi-ic">🌡️</span><span class="pi-nm">Stench</span></div>
-        <div class="pi br" id="p-breeze"><span class="pi-ic">🌀</span><span class="pi-nm">Breeze</span></div>
-        <div class="pi gl" id="p-glitter"><span class="pi-ic">✨</span><span class="pi-nm">Glitter</span></div>
-        <div class="pi" id="p-bump"><span class="pi-ic">💥</span><span class="pi-nm">Bump</span></div>
-        <div class="pi sc" id="p-scream"><span class="pi-ic">😱</span><span class="pi-nm">Scream</span></div>
+        <div class="pi st" id="p-stench"><span class="pi-ic" style="color:var(--stench)">≋</span><span class="pi-nm">Stench</span></div>
+        <div class="pi br" id="p-breeze"><span class="pi-ic" style="color:var(--breeze)">≈</span><span class="pi-nm">Breeze</span></div>
+        <div class="pi gl" id="p-glitter"><span class="pi-ic" style="color:var(--gold)">◆</span><span class="pi-nm">Glitter</span></div>
+        <div class="pi" id="p-bump"><span class="pi-ic">!</span><span class="pi-nm">Bump</span></div>
+        <div class="pi sc" id="p-scream"><span class="pi-ic" style="color:var(--safe)">!</span><span class="pi-nm">Scream</span></div>
       </div>
     </div>
 
