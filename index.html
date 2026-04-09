@@ -163,14 +163,12 @@ body{
 /* Direction arrow */
 .dirarr{
   position:absolute;top:2px;right:2px;z-index:4;line-height:1;font-weight:700;
-  font-size:0.72rem;color:var(--agent);
+  width:16px;height:16px;padding:2px;color:var(--agent);
   background:rgba(245,197,24,0.16);border:1px solid rgba(245,197,24,0.35);
   border-radius:999px;padding:1px 3px 0 3px;
   box-shadow:0 0 10px rgba(245,197,24,0.12);
 }
-
-/* Safe dot */
-.sdot{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--safe);opacity:0.7;z-index:3;}
+.dirarr svg{width:100%;height:100%;display:block;}
 
 /* Reveal animation */
 @keyframes revealCell{from{opacity:0;transform:scale(0.85);}to{opacity:1;transform:scale(1);}}
@@ -268,6 +266,8 @@ body{
 }
 @keyframes resIn{from{opacity:0;transform:scale(0.8) translateY(16px);}to{opacity:1;transform:scale(1) translateY(0);}}
 .res-ic{font-size:2.6rem;margin-bottom:10px;display:block;font-weight:700;line-height:1;}
+.res-map{width:100%;max-width:220px;margin:0 auto 14px;}
+.res-map .wg{width:100%;}
 .res-title{font-size:1.75rem;font-weight:700;margin-bottom:8px;}
 .res-title.win{color:var(--gold);}
 .res-title.lose{color:var(--danger);}
@@ -429,6 +429,7 @@ body{
     <span class="res-ic" id="resIc">★</span>
     <div class="res-title win" id="resTitle">Victory!</div>
     <div class="res-desc" id="resDesc">The agent retrieved the gold and escaped the cave!</div>
+    <div class="res-map wg" id="resMap"></div>
     <div class="res-stats" id="resStats"></div>
     <div class="btns" style="justify-content:center;gap:10px">
       <button class="btn primary" onclick="closeResult()">New Map</button>
@@ -446,6 +447,28 @@ body{
 const DVEC  = [[0,1],[-1,0],[0,-1],[1,0]];
 const DSYM  = ['→','↑','←','↓'];
 const DNAME = ['East','North','West','South'];
+
+function createDirectionArrow(dir){
+  const wrap=document.createElement('span');
+  wrap.className='dirarr';
+  wrap.setAttribute('aria-label',DNAME[dir]);
+  wrap.title=DNAME[dir];
+
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox','0 0 18 18');
+  svg.setAttribute('aria-hidden','true');
+  svg.style.transform=`rotate(${[0,-90,180,90][dir]}deg)`;
+  const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+  path.setAttribute('d','M4 9h8M9 4l5 5-5 5');
+  path.setAttribute('fill','none');
+  path.setAttribute('stroke','currentColor');
+  path.setAttribute('stroke-width','1.9');
+  path.setAttribute('stroke-linecap','round');
+  path.setAttribute('stroke-linejoin','round');
+  svg.appendChild(path);
+  wrap.appendChild(svg);
+  return wrap;
+}
 
 let G = null;
 let steps = null;
@@ -762,8 +785,8 @@ function colLabel(c){ return ['A','B','C','D'][c]; }
 // ═══════════════════════════════════════════
 //  Rendering
 // ═══════════════════════════════════════════
-function renderGrid(g,kb,ag,revealAll,prevKb=null){
-  const el=document.getElementById('wgrid');
+function renderGrid(g,kb,ag,revealAll,prevKb=null,targetEl=null){
+  const el=targetEl||document.getElementById('wgrid');
   el.innerHTML='';
   for(let r=0;r<4;r++){
     for(let c=0;c<4;c++){
@@ -825,11 +848,7 @@ function renderGrid(g,kb,ag,revealAll,prevKb=null){
       }
 
       if(isAg&&ag){
-        const a=document.createElement('div');a.className='dirarr';a.textContent=DSYM[ag.dir];div.appendChild(a);
-      }
-
-      if(!revealAll&&!isVis&&isSafe&&kb){
-        const d=document.createElement('div');d.className='sdot';div.appendChild(d);
+        div.appendChild(createDirectionArrow(ag.dir));
       }
 
       el.appendChild(div);
@@ -1027,6 +1046,7 @@ function showResult(step){
   const title=document.getElementById('resTitle');
   const icon=document.getElementById('resIc');
   const desc=document.getElementById('resDesc');
+  const mapEl=document.getElementById('resMap');
   const statsEl=document.getElementById('resStats');
 
   if(step.action==='CLIMB'){
@@ -1045,6 +1065,9 @@ function showResult(step){
 
   const explored=step.kb.vis.size;
   const outcome=step.action==='CLIMB'?'Win':step.ag.alive?'Stalemate':'Loss';
+  if(mapEl){
+    renderGrid(G,step.kb,step.ag,true,null,mapEl);
+  }
   statsEl.innerHTML=`
     <div class="rs-item"><div class="rs-val">${si}</div><div class="rs-lbl">Steps Taken</div></div>
     <div class="rs-item"><div class="rs-val">${explored}</div><div class="rs-lbl">Cells Found</div></div>
