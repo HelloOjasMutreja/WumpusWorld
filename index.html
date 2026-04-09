@@ -319,6 +319,7 @@ button,input,select{touch-action:manipulation;}
   body{padding:8px;}
   .hdr{flex-direction:column;align-items:flex-start;gap:6px;}
   .main{gap:8px;}
+  .controls-card{order:-1;}
   .status-row{padding:6px 10px;}
   .gp,.card,.log-card{padding:10px;}
   .col-labels{grid-template-columns:14px repeat(4,1fr);}
@@ -425,7 +426,7 @@ button,input,select{touch-action:manipulation;}
     </div>
 
     <!-- Controls -->
-    <div class="card">
+    <div class="card controls-card">
       <div class="ctitle">Controls</div>
       <div class="btns">
         <button class="btn primary" id="genBtn" onclick="generateNewMap()">New Map</button>
