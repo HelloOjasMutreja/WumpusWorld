@@ -398,7 +398,7 @@ body{
       </div>
       <div class="spd">
         <span>Speed</span>
-        <input type="range" id="spdR" min="600" max="3000" value="1400" step="100">
+        <input type="range" id="spdR" min="600" max="3000" value="1800" step="100">
         <span id="spdL">1.4s</span>
       </div>
     </div>
@@ -876,6 +876,11 @@ function floatText(text,color,r,c){
   setTimeout(()=>d.remove(),1300);
 }
 
+function getSpeedDelay(){
+  const slider=document.getElementById('spdR');
+  return parseInt(slider.min,10) + parseInt(slider.max,10) - parseInt(slider.value,10);
+}
+
 // ═══════════════════════════════════════════
 //  Game Flow
 // ═══════════════════════════════════════════
@@ -940,7 +945,7 @@ function togglePlay(){
 }
 
 function autoRun(){
-  const spd=parseInt(document.getElementById('spdR').value);
+  const spd=getSpeedDelay();
   timer=setInterval(()=>{
     const more=execStep();
     if(!more){ clearInterval(timer); timer=null; document.getElementById('genBtn').disabled=false; }
@@ -963,7 +968,7 @@ function execStep(){
   const step=steps[si]; si++;
   const prevKB=lastRenderKB;
 
-  const spd=parseInt(document.getElementById('spdR').value);
+  const spd=getSpeedDelay();
   const thinkTime=Math.min(Math.max(120,Math.floor(spd*0.45)),Math.max(120,spd-80));
 
   document.getElementById('thinkEl').style.display='flex';
@@ -1060,10 +1065,12 @@ function replayNow(){
 }
 
 document.getElementById('spdR').addEventListener('input',function(){
-  const v=parseInt(this.value);
-  document.getElementById('spdL').textContent=(v/1000).toFixed(1)+'s';
+  const delay=getSpeedDelay();
+  document.getElementById('spdL').textContent=(delay/1000).toFixed(1)+'s';
   if(timer&&phase==='playing'){ clearInterval(timer); autoRun(); }
 });
+
+document.getElementById('spdL').textContent=(getSpeedDelay()/1000).toFixed(1)+'s';
 
 (function init(){
   const el=document.getElementById('wgrid');
