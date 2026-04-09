@@ -100,7 +100,8 @@ body::after{
   transition:background 0.35s,border-color 0.35s,box-shadow 0.35s;
   overflow:hidden;min-height:0;
 }
-.cell.vis{background:var(--cell-vis);border-color:var(--bordB);}
+.cell.vis{background:#d9e6ff;border-color:#b8c8ee;}
+.cell.vis-new{background:#c9dcff;border-color:#96b6eb;box-shadow:inset 0 0 0 1px rgba(120,160,220,0.18);}
 .cell.fog{background:#080715;border-color:#130f22;}
 .cell.fog::after{
   content:'';position:absolute;inset:0;
@@ -116,6 +117,7 @@ body::after{
   50%{box-shadow:0 0 36px rgba(245,197,24,0.5),inset 0 0 24px rgba(245,197,24,0.08);}
 }
 .cell.safe-unk{border-color:rgba(52,211,153,0.25)!important;}
+.cell.safe-new{background:rgba(46,168,122,0.22)!important;border-color:rgba(46,168,122,0.68)!important;box-shadow:inset 0 0 0 1px rgba(46,168,122,0.18);}
 .cell.pppit{border-color:rgba(56,189,248,0.28)!important;}
 .cell.ppwump{border-color:rgba(251,146,60,0.28)!important;}
 .cell.ppboth{border-color:rgba(248,113,113,0.3)!important;}
@@ -409,6 +411,7 @@ let si = 0;            // current step index
 let timer = null;
 let phase = 'idle';    // idle|peek|ready|playing|paused|done
 let stepInFlight = false;
+let lastRenderKB = null;
 
 // ── Grid cell factory ──
 function mkCell(){
@@ -730,7 +733,7 @@ function colLabel(c){ return ['A','B','C','D'][c]; }
 // ═══════════════════════════════════════════
 //  Rendering
 // ═══════════════════════════════════════════
-function renderGrid(g,kb,ag,revealAll){
+function renderGrid(g,kb,ag,revealAll,prevKb=null){
   const el=document.getElementById('wgrid');
   el.innerHTML='';
   for(let r=0;r<4;r++){
@@ -745,14 +748,19 @@ function renderGrid(g,kb,ag,revealAll){
       const isSafe = kb&&kb.isSafe(r,c);
       const isMbP  = kb&&kb.maybePit.has(key(r,c))&&!isVis;
       const isMbW  = kb&&kb.maybeWump.has(key(r,c))&&!isVis;
+      const wasVis = prevKb&&prevKb.vis.has(key(r,c));
+      const wasSafe = prevKb&&prevKb.isSafe(r,c);
 
       if(revealAll||isVis) div.classList.add('vis');
       else div.classList.add('fog');
+      if(isVis&&wasVis) div.classList.add('vis');
+      if(isVis&&!wasVis) div.classList.add('vis-new');
       if(isAg) div.classList.add('cur');
 
       // KB border hints (unvisited only)
       if(!revealAll&&!isVis&&kb){
-        if(isSafe) div.classList.add('safe-unk');
+        if(isSafe&&!wasSafe) div.classList.add('safe-new');
+        else if(isSafe) div.classList.add('safe-unk');
         else if(isMbP&&isMbW) div.classList.add('ppboth');
         else if(isMbP) div.classList.add('pppit');
         else if(isMbW) div.classList.add('ppwump');
@@ -902,7 +910,8 @@ function generateNewMap(){
       phase='ready';
       updPhase(2);
       const startKB=mkKB(); startKB.markSafe(3,0); startKB.tell(3,0,percepts(G,3,0,true));
-      renderGrid(G,startKB.snap(),{r:3,c:0,dir:0,alive:true,gold:false,arrow:true},false);
+      lastRenderKB=startKB.snap();
+      renderGrid(G,lastRenderKB,{r:3,c:0,dir:0,alive:true,gold:false,arrow:true},false,null);
       document.getElementById('gTitle').textContent="The Cave — Agent's Knowledge";
       setStatus('Map ready! Press ▶ Begin for auto-play or ⏭ Step to go one step at a time.');
       document.getElementById('playBtn').disabled=false;
@@ -951,6 +960,7 @@ function execStep(){
   if(stepInFlight) return true;
   if(!steps||si>=steps.length) return false;
   const step=steps[si]; si++;
+  const prevKB=lastRenderKB;
 
   document.getElementById('thinkEl').style.display='flex';
   const spd=parseInt(document.getElementById('spdR').value);
@@ -958,7 +968,8 @@ function execStep(){
   stepInFlight=true;
   setTimeout(()=>{
     document.getElementById('thinkEl').style.display='none';
-    renderGrid(G,step.kb,step.ag,false);
+    renderGrid(G,step.kb,step.ag,false,prevKB);
+    lastRenderKB=step.kb;
     updPercepts(step.percepts);
     updStatus(step.ag,si);
     addLog(si,step.action,step.reasoning);
@@ -1015,7 +1026,8 @@ function showResult(step){
   `;
 
   // Reveal full map
-  renderGrid(G,step.kb,step.ag,true);
+  renderGrid(G,step.kb,step.ag,true,lastRenderKB);
+  lastRenderKB=step.kb;
   document.getElementById('gTitle').textContent='The Cave — Fully Revealed';
   overlay.style.display='flex';
 }
@@ -1026,6 +1038,7 @@ function replayNow(){
   document.getElementById('resOv').style.display='none';
   stepInFlight=false;
   si=0; phase='ready';
+  lastRenderKB=null;
   document.getElementById('aLog').innerHTML='';
   document.getElementById('playBtn').textContent='▶ Begin';
   document.getElementById('playBtn').disabled=false;
