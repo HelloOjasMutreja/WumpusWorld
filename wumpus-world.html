@@ -71,7 +71,7 @@ body::after{
 .pdot.done{background:var(--safe);}
 .plabel{font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:0.2em;color:var(--dim);text-transform:uppercase;}
 /* ── MAIN LAYOUT ── */
-.main{display:grid;grid-template-columns:380px 280px;gap:14px;flex:1;min-height:0;width:680px;}
+.main{display:grid;grid-template-columns:380px 280px;gap:14px;flex:1;min-height:0;width:min(100%,960px);}
 /* ── GRID PANEL ── */
 .gp{
   background:var(--surf);border:1px solid var(--border);border-radius:12px;
@@ -89,10 +89,10 @@ body::after{
 .grid-wrap{flex:1;display:flex;flex-direction:column;min-height:0;}
 .col-labels{display:grid;grid-template-columns:18px repeat(4,1fr);gap:3px;margin-bottom:3px;flex-shrink:0;}
 .cl{font-family:'Cinzel',serif;font-size:0.58rem;color:var(--dim);text-align:center;letter-spacing:0.1em;}
-.grid-rows{display:flex;gap:3px;flex:1;min-height:0;}
+.grid-rows{display:flex;gap:3px;flex:1;min-height:0;align-items:stretch;}
 .row-lbls{display:grid;grid-template-rows:repeat(4,1fr);width:18px;flex-shrink:0;}
 .rl{font-family:'Cinzel',serif;font-size:0.58rem;color:var(--dim);text-align:right;line-height:1;display:flex;align-items:center;justify-content:flex-end;}
-.wg{flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:3px;min-height:0;}
+.wg{flex:1;aspect-ratio:1/1;width:100%;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:3px;min-height:0;}
 /* ── CELL ── */
 .cell{
   border-radius:6px;border:1px solid var(--border);background:var(--cell);
@@ -278,6 +278,31 @@ body::after{
 }
 /* Scrollable log card */
 .log-card{background:var(--surf);border:1px solid var(--border);border-radius:9px;padding:12px;display:flex;flex-direction:column;flex:1;min-height:0;}
+
+@media (max-width: 860px){
+  html,body{overflow:auto;}
+  body{padding:10px;}
+  .hdr,.status-row,.main,.bbar{width:100%;max-width:100%;}
+  .main{grid-template-columns:1fr;}
+  .wg{max-width:min(100vw - 42px, 560px);margin:0 auto;}
+  .bbar{width:100%;}
+}
+
+@media (max-width: 560px){
+  body{padding:8px;}
+  .hdr{flex-direction:column;align-items:flex-start;gap:6px;}
+  .phases{margin-left:0;justify-content:flex-start;flex-wrap:wrap;gap:4px 8px;}
+  .main{gap:8px;}
+  .status-row{padding:6px 10px;}
+  .gp,.card,.log-card{padding:10px;}
+  .col-labels{grid-template-columns:14px repeat(4,1fr);gap:2px;}
+  .grid-rows{gap:2px;}
+  .row-lbls{width:14px;}
+  .cl,.rl,.plabel,#statsT,#statusMsg,#posText,.li,.pi,.ln,.la .ar{font-size:clamp(0.55rem,2.2vw,0.72rem);}
+  .ci{font-size:1.25rem;}
+  .dirarr{font-size:0.66rem;}
+  .btn{padding:7px 10px;}
+}
 </style>
 </head>
 <body>
