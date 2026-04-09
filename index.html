@@ -851,7 +851,7 @@ function renderGrid(g,kb,ag,revealAll,prevKb=null,targetEl=null){
       const show = revealAll||isVis;
       const showConfirmed = !revealAll&&!isVis&&(isConfP||isConfW);
       const icons=[];
-      if(isAg) icons.push({ic:'◉',glow:'var(--agent)',color:'var(--agent)'});
+      if(isAg) icons.push({ic:'◉',glow:'var(--agent)',color:'var(--text)'});
       if(show){
         if(cell.wumpus) icons.push({ic:'×',glow:'var(--wumpus)',color:'var(--wumpus)'});
         if(cell.pit)    icons.push({ic:'○',glow:null,color:'var(--pit)'});
