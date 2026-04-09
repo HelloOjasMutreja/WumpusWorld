@@ -535,12 +535,22 @@ function mkKB(){
     },
 
     snap(){
+      const safeSnap=new Set(safe);
+      const visSnap=new Set(vis);
+      const noPitSnap=new Set(noPit);
+      const noWumpSnap=new Set(noWump);
+      const maybePitSnap=new Set(maybePit);
+      const maybeWumpSnap=new Set(maybeWump);
+      const confWumpSnap=new Set(confWump);
       return {
-        safe:new Set(safe), vis:new Set(vis),
-        noPit:new Set(noPit), noWump:new Set(noWump),
-        maybePit:new Set(maybePit), maybeWump:new Set(maybeWump),
-        confWump:new Set(confWump),
-        isSafe:(r,c)=>{ const k=key(r,c); return safe.has(k)||(noPit.has(k)&&noWump.has(k)); }
+        safe:safeSnap,
+        vis:visSnap,
+        noPit:noPitSnap,
+        noWump:noWumpSnap,
+        maybePit:maybePitSnap,
+        maybeWump:maybeWumpSnap,
+        confWump:confWumpSnap,
+        isSafe:(r,c)=>{ const k=key(r,c); return safeSnap.has(k)||(noPitSnap.has(k)&&noWumpSnap.has(k)); }
       };
     }
   };
