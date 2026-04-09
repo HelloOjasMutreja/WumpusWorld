@@ -129,7 +129,7 @@ body{
 .cell:nth-child(n+13){border-bottom:none;}
 
 .cell.vis{background:var(--cell-vis);}
-.cell.fog{background:var(--cell);opacity:0.55;}
+.cell.fog{background:#ece8f8;opacity:0.58;}
 .cell.cur{
   box-shadow:inset 0 0 14px var(--agentG);
   animation:curPulse 2s ease infinite;
@@ -139,16 +139,16 @@ body{
   0%,100%{box-shadow:inset 0 0 8px var(--agentG);}
   50%{box-shadow:inset 0 0 20px rgba(217,119,6,0.32);}
 }
-.cell.safe-unk{background:rgba(46,168,122,0.07)!important;border-color:rgba(46,168,122,0.35)!important;}
-.cell.pppit{background:rgba(56,160,200,0.07);}
-.cell.ppwump{background:rgba(212,104,40,0.07);}
-.cell.ppboth{background:rgba(216,88,88,0.08);}
-.cell.pit-reveal{background:rgba(74,126,160,0.1);}
-.cell.wump-reveal{background:rgba(220,64,64,0.08);}
+.cell.safe-unk{background:rgba(46,168,122,0.17)!important;border-color:rgba(46,168,122,0.55)!important;}
+.cell.pppit{background:rgba(56,160,200,0.16);border-color:rgba(56,160,200,0.35);}
+.cell.ppwump{background:rgba(212,104,40,0.16);border-color:rgba(212,104,40,0.34);}
+.cell.ppboth{background:rgba(216,88,88,0.18);border-color:rgba(216,88,88,0.4);}
+.cell.pit-reveal{background:rgba(74,126,160,0.23);border-color:rgba(74,126,160,0.45);}
+.cell.wump-reveal{background:rgba(220,64,64,0.2);border-color:rgba(220,64,64,0.46);}
 
 /* Cell icons */
 .cicons{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:1px;padding:3px;z-index:2;}
-.ci{font-size:1.15rem;line-height:1;transition:all 0.3s;user-select:none;font-weight:700;}
+.ci{font-size:1.55rem;line-height:1;transition:all 0.3s;user-select:none;font-weight:700;}
 
 /* Percept tags */
 .ptag{
@@ -241,11 +241,11 @@ body{
 .peek-ov{
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   flex-direction:column;gap:6px;z-index:20;border-radius:10px;
-  background:rgba(245,242,255,0.92);backdrop-filter:blur(6px);
+  background:rgba(245,242,255,0.32);backdrop-filter:blur(1px);
 }
-.peek-ttl{font-size:0.88rem;color:var(--accent);letter-spacing:0.14em;text-align:center;font-weight:600;}
-.peek-num{font-size:3.2rem;font-weight:700;color:var(--text);line-height:1;}
-.peek-sub{font-size:0.7rem;color:var(--dim);font-style:italic;}
+.peek-ttl{font-size:0.88rem;color:var(--accent);letter-spacing:0.14em;text-align:center;font-weight:700;text-shadow:0 1px 0 rgba(255,255,255,0.65);}
+.peek-num{font-size:3.2rem;font-weight:700;color:var(--text);line-height:1;text-shadow:0 1px 0 rgba(255,255,255,0.65);}
+.peek-sub{font-size:0.7rem;color:var(--dim);font-style:italic;text-shadow:0 1px 0 rgba(255,255,255,0.6);}
 
 /* ── RESULT OVERLAY ── */
 .res-ov{
@@ -567,6 +567,23 @@ function dirTo(fr,fc,tr,tc){
   return 3;
 }
 
+function alignedDir(fr,fc,tr,tc){
+  if(fr===tr) return tc>fc?0:2;
+  if(fc===tc) return tr<fr?1:3;
+  return -1;
+}
+
+function arrowHitsWumpus(g,fr,fc,dir,wAlive){
+  if(!wAlive) return false;
+  const [dr,dc]=DVEC[dir];
+  let r=fr+dr,c=fc+dc;
+  while(r>=0&&r<4&&c>=0&&c<4){
+    if(g[r][c].wumpus) return true;
+    r+=dr; c+=dc;
+  }
+  return false;
+}
+
 // ── AI Simulation (pre-compute all steps) ──
 function simulate(g){
   const ss=[]; const kb=mkKB();
@@ -609,11 +626,52 @@ function simulate(g){
     }
 
     if(ag.arrow&&kb.confWump.size>0){
-      const wk=[...kb.confWump][0]; const {r:wr,c:wc}=rc(+wk);
-      if(wr===ag.r&&wc>ag.c){ ag.dir=0; ag.arrow=false; wAlive=false; kb.noWump.add(key(wr,wc)); kb.confWump.delete(key(wr,wc)); kb.markSafe(wr,wc); rec('SHOOT',`Fired arrow East — hit Wumpus at (${colLabel(wc)},${4-wr})! The cave echoes with a scream`,{scream:true}); continue; }
-      if(wr===ag.r&&wc<ag.c){ ag.dir=2; ag.arrow=false; wAlive=false; kb.noWump.add(key(wr,wc)); kb.confWump.delete(key(wr,wc)); kb.markSafe(wr,wc); rec('SHOOT',`Fired arrow West — hit Wumpus at (${colLabel(wc)},${4-wr})! The cave echoes with a scream`,{scream:true}); continue; }
-      if(wc===ag.c&&wr<ag.r){ ag.dir=1; ag.arrow=false; wAlive=false; kb.noWump.add(key(wr,wc)); kb.confWump.delete(key(wr,wc)); kb.markSafe(wr,wc); rec('SHOOT',`Fired arrow North — hit Wumpus at (${colLabel(wc)},${4-wr})! The cave echoes with a scream`,{scream:true}); continue; }
-      if(wc===ag.c&&wr>ag.r){ ag.dir=3; ag.arrow=false; wAlive=false; kb.noWump.add(key(wr,wc)); kb.confWump.delete(key(wr,wc)); kb.markSafe(wr,wc); rec('SHOOT',`Fired arrow South — hit Wumpus at (${colLabel(wc)},${4-wr})! The cave echoes with a scream`,{scream:true}); continue; }
+      const wk=[...kb.confWump][0];
+      const {r:wr,c:wc}=rc(+wk);
+      const dir=alignedDir(ag.r,ag.c,wr,wc);
+
+      if(dir!==-1){
+        ag.dir=dir;
+        const hit=arrowHitsWumpus(g,ag.r,ag.c,dir,wAlive);
+        ag.arrow=false;
+        if(hit){
+          wAlive=false;
+          kb.noWump.add(key(wr,wc));
+          kb.confWump.delete(key(wr,wc));
+          kb.markSafe(wr,wc);
+          rec('SHOOT_HIT',`Fired arrow ${DNAME[dir]} — hit Wumpus at (${colLabel(wc)},${4-wr})! The cave echoes with a scream`,{scream:true});
+        }else{
+          rec('SHOOT_MISS',`Fired arrow ${DNAME[dir]} — silence... no scream. Arrow lost.`,{scream:false});
+        }
+        continue;
+      }
+
+      // Move toward a safe firing lane so the arrow can be used strategically.
+      const lanes=[];
+      for(let r=0;r<4;r++) lanes.push({r,c:wc});
+      for(let c=0;c<4;c++) lanes.push({r:wr,c});
+
+      let setupPath=null;
+      let bestLen=Infinity;
+      for(const p of lanes){
+        if(p.r===ag.r&&p.c===ag.c) continue;
+        if(!kb.isSafe(p.r,p.c)) continue;
+        const path=bfs(kb.snap(),ag.r,ag.c,p.r,p.c);
+        if(path&&path.length>0&&path.length<bestLen){
+          bestLen=path.length;
+          setupPath=path;
+        }
+      }
+
+      if(setupPath){
+        const [nr,nc]=setupPath[0];
+        ag.dir=dirTo(ag.r,ag.c,nr,nc);
+        ag.r=nr;
+        ag.c=nc;
+        kb.tell(nr,nc,percepts(g,nr,nc,wAlive));
+        rec('MOVE_SHOT_SETUP',`Repositioning for a clear shot — moving to (${colLabel(nc)},${4-nr})`);
+        continue;
+      }
     }
 
     const fr=kb.safeFrontier();
@@ -726,7 +784,7 @@ function updPercepts(p){
 
 const ACTION_LABELS={
   START:'Entered Cave', MOVE:'Moved', MOVE_HOME:'Heading Home',
-  GRAB:'Grabbed Gold', CLIMB:'Escaped!', SHOOT:'Fired Arrow',
+  GRAB:'Grabbed Gold', CLIMB:'Escaped!', SHOOT_HIT:'Arrow Hit', SHOOT_MISS:'Arrow Missed', MOVE_SHOT_SETUP:'Took Position',
   STUCK:'Stuck', PIT:'Fell in Pit', EATEN:'Devoured!',
 };
 
@@ -873,7 +931,8 @@ function execStep(){
 
     const floatMap={
       GRAB:['GOLD!','var(--gold)'],
-      SHOOT:['ARROW!','var(--stench)'],
+      SHOOT_HIT:['SCREAM!','var(--stench)'],
+      SHOOT_MISS:['MISS!','var(--dim)'],
       PIT:['PIT!','var(--danger)'],
       EATEN:['WUMPUS!','var(--wumpus)'],
       CLIMB:['ESCAPED!','var(--gold)']
