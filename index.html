@@ -210,7 +210,7 @@ body{
 .pi.on .pi-nm{color:var(--text);}
 
 /* Log */
-.log-scroll{overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--bordB) transparent;flex:1;}
+.log-scroll{max-height:240px;min-height:130px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--bordB) transparent;flex:1;}
 .le{
   display:flex;align-items:flex-start;gap:7px;padding:4px 0;
   border-bottom:1px solid rgba(0,0,0,0.04);font-size:0.71rem;
@@ -300,7 +300,7 @@ button,input,select{touch-action:manipulation;}
 }
 
 /* Scrollable log card */
-.log-card{background:var(--surf);border:1px solid var(--border);border-radius:8px;padding:9px 11px;display:flex;flex-direction:column;flex:1;min-height:0;}
+.log-card{background:var(--surf);border:1px solid var(--border);border-radius:8px;padding:9px 11px;display:flex;flex-direction:column;flex:0 0 auto;min-height:0;}
 
 @media (max-width: 860px){
   body{padding:10px;min-height:100dvh;}
@@ -553,6 +553,7 @@ function mkKB(){
   const vis    = new Set();
   const noPit  = new Set();
   const noWump = new Set();
+  const breezeSeen = new Set();
   const stenchSeen = new Set();
   const maybePit  = new Set();
   const maybeWump = new Set();
@@ -560,7 +561,7 @@ function mkKB(){
   const confWump  = new Set();
 
   return {
-    safe, vis, noPit, noWump, stenchSeen, maybePit, maybeWump, confPit, confWump,
+    safe, vis, noPit, noWump, breezeSeen, stenchSeen, maybePit, maybeWump, confPit, confWump,
 
     markSafe(r,c){
       const k=key(r,c); safe.add(k); noPit.add(k); noWump.add(k);
@@ -575,6 +576,7 @@ function mkKB(){
       if(!p.breeze){
         nb.forEach(([ar,ac])=>{ const ak=key(ar,ac); noPit.add(ak); maybePit.delete(ak); confPit.delete(ak); });
       } else {
+        breezeSeen.add(k);
         nb.forEach(([ar,ac])=>{ const ak=key(ar,ac); if(!vis.has(ak)&&!noPit.has(ak)) maybePit.add(ak); });
       }
       if(!p.stench){
@@ -587,7 +589,21 @@ function mkKB(){
     },
 
     _infer(){
-      const pitCands=[...maybePit].filter(k=>!noPit.has(k)&&!vis.has(k));
+      let pitCands=[];
+      if(breezeSeen.size>0){
+        for(let r=0;r<4;r++){
+          for(let c=0;c<4;c++){
+            const ck=key(r,c);
+            if(vis.has(ck)||noPit.has(ck)) continue;
+            const fitsAllBreezes=[...breezeSeen].every(bk=>{
+              const b=rc(bk);
+              return Math.abs(b.r-r)+Math.abs(b.c-c)===1;
+            });
+            if(fitsAllBreezes) pitCands.push(ck);
+          }
+        }
+      }
+
       confPit.clear();
       if(pitCands.length===1) confPit.add(pitCands[0]);
 
