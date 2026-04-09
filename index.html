@@ -553,13 +553,14 @@ function mkKB(){
   const vis    = new Set();
   const noPit  = new Set();
   const noWump = new Set();
+  const stenchSeen = new Set();
   const maybePit  = new Set();
   const maybeWump = new Set();
   const confPit   = new Set();
   const confWump  = new Set();
 
   return {
-    safe, vis, noPit, noWump, maybePit, maybeWump, confPit, confWump,
+    safe, vis, noPit, noWump, stenchSeen, maybePit, maybeWump, confPit, confWump,
 
     markSafe(r,c){
       const k=key(r,c); safe.add(k); noPit.add(k); noWump.add(k);
@@ -579,6 +580,7 @@ function mkKB(){
       if(!p.stench){
         nb.forEach(([ar,ac])=>{ const ak=key(ar,ac); noWump.add(ak); maybeWump.delete(ak); confWump.delete(ak); });
       } else {
+        stenchSeen.add(k);
         nb.forEach(([ar,ac])=>{ const ak=key(ar,ac); if(!vis.has(ak)&&!noWump.has(ak)) maybeWump.add(ak); });
       }
       this._infer();
@@ -589,7 +591,21 @@ function mkKB(){
       confPit.clear();
       if(pitCands.length===1) confPit.add(pitCands[0]);
 
-      const wumpCands=[...maybeWump].filter(k=>!noWump.has(k)&&!vis.has(k));
+      let wumpCands=[];
+      if(stenchSeen.size>0){
+        for(let r=0;r<4;r++){
+          for(let c=0;c<4;c++){
+            const ck=key(r,c);
+            if(vis.has(ck)||noWump.has(ck)) continue;
+            const fitsAllStenches=[...stenchSeen].every(sk=>{
+              const s=rc(sk);
+              return Math.abs(s.r-r)+Math.abs(s.c-c)===1;
+            });
+            if(fitsAllStenches) wumpCands.push(ck);
+          }
+        }
+      }
+
       confWump.clear();
       if(wumpCands.length===1) confWump.add(wumpCands[0]);
     },
