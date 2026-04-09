@@ -453,7 +453,7 @@ function generateMap(){
   const pBanned = new Set([key(3,0),key(wr,wc)]);
   const pPool = all.filter(([r,c])=>!pBanned.has(key(r,c)));
   shuffle(pPool);
-  const nPits = 2 + (Math.random()<0.5?1:0);
+  const nPits = 1;
   for(let i=0;i<Math.min(nPits,pPool.length);i++) g[pPool[i][0]][pPool[i][1]].pit = true;
 
   const gBanned = new Set([key(3,0)]);
