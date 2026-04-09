@@ -670,7 +670,7 @@ function simulate(g){
   rec('START','Entered the cave at (A,1) — the only known safe square');
 
   let max=80;
-  while(!ag.climbed&&ag.alive&&max-->0){
+  while(!ag.climbed&&ag.alive&&max-- > 0){
     const p=percepts(g,ag.r,ag.c,wAlive);
 
     // Death check
