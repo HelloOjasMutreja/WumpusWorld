@@ -663,14 +663,24 @@ function simulate(g){
 
       let setupPath=null;
       let bestLen=Infinity;
+      const setupCandidates=[];
       for(const p of lanes){
         if(p.r===ag.r&&p.c===ag.c) continue;
         if(!kb.isSafe(p.r,p.c)) continue;
         const path=bfs(kb.snap(),ag.r,ag.c,p.r,p.c);
-        if(path&&path.length>0&&path.length<bestLen){
-          bestLen=path.length;
-          setupPath=path;
+        if(path&&path.length>0){
+          if(path.length<bestLen){
+            bestLen=path.length;
+            setupCandidates.length=0;
+            setupCandidates.push(path);
+          } else if(path.length===bestLen){
+            setupCandidates.push(path);
+          }
         }
+      }
+
+      if(setupCandidates.length>0){
+        setupPath=setupCandidates[rnd(setupCandidates.length)];
       }
 
       if(setupPath){
@@ -686,10 +696,22 @@ function simulate(g){
 
     const fr=kb.safeFrontier();
     if(fr.length>0){
-      let best=null,bestPath=null,bestD=Infinity;
+      let bestPath=null,bestD=Infinity;
+      const bestCandidates=[];
       for(const t of fr){
         const path=bfs(kb.snap(),ag.r,ag.c,t.r,t.c);
-        if(path&&path.length<bestD){ bestD=path.length; best=t; bestPath=path; }
+        if(path&&path.length>0){
+          if(path.length<bestD){
+            bestD=path.length;
+            bestCandidates.length=0;
+            bestCandidates.push(path);
+          } else if(path.length===bestD){
+            bestCandidates.push(path);
+          }
+        }
+      }
+      if(bestCandidates.length>0){
+        bestPath=bestCandidates[rnd(bestCandidates.length)];
       }
       if(bestPath&&bestPath.length>0){
         const [nr,nc]=bestPath[0];
