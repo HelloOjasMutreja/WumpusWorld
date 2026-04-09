@@ -106,8 +106,8 @@ body{
 .col-labels{display:grid;grid-template-columns:18px repeat(4,1fr);margin-bottom:3px;flex-shrink:0;}
 .cl{font-size:0.56rem;color:var(--dim);text-align:center;font-weight:600;opacity:0.65;}
 .grid-rows{display:flex;flex:1;min-height:0;}
-.row-lbls{display:flex;flex-direction:column;justify-content:space-around;width:18px;flex-shrink:0;}
-.rl{font-size:0.56rem;color:var(--dim);text-align:right;line-height:1;font-weight:600;opacity:0.65;}
+.row-lbls{display:grid;grid-template-rows:repeat(4,1fr);width:18px;flex-shrink:0;}
+.rl{font-size:0.56rem;color:var(--dim);text-align:right;line-height:1;font-weight:600;opacity:0.65;display:flex;align-items:center;justify-content:flex-end;}
 .wg{
   flex:1;
   display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);
@@ -122,7 +122,7 @@ body{
   background:var(--cell);
   position:relative;display:flex;align-items:center;justify-content:center;
   transition:background 0.3s,box-shadow 0.3s;
-  overflow:hidden;min-height:0;aspect-ratio:1;
+  overflow:hidden;min-height:0;
 }
 /* Remove double-borders: last column, last row */
 .cell:nth-child(4n){border-right:none;}
@@ -426,6 +426,7 @@ let steps = null;
 let si = 0;
 let timer = null;
 let phase = 'idle';
+let stepInFlight = false;
 
 function mkCell(){
   return { wumpus:false, pit:false, gold:false, percepts:null };
@@ -776,6 +777,7 @@ function floatText(text,color,r,c){
 // ═══════════════════════════════════════════
 function generateNewMap(){
   if(timer){clearInterval(timer);timer=null;}
+  stepInFlight=false;
   phase='peek';
   G=generateMap();
   steps=null; si=0;
@@ -841,7 +843,7 @@ function autoRun(){
 }
 
 function doStep(){
-  if(!G||!steps||phase==='done') return;
+  if(!G||!steps||phase==='done'||stepInFlight) return;
   if(phase==='ready'||phase==='paused'){
     phase='playing'; updPhase(3);
     document.getElementById('playBtn').textContent='\u23F8 Pause';
@@ -851,13 +853,15 @@ function doStep(){
 }
 
 function execStep(){
+  if(stepInFlight) return true;
   if(!steps||si>=steps.length) return false;
   const step=steps[si]; si++;
 
   const spd=parseInt(document.getElementById('spdR').value);
-  const thinkTime=Math.max(400, Math.floor(spd * 0.45));
+  const thinkTime=Math.min(Math.max(120,Math.floor(spd*0.45)),Math.max(120,spd-80));
 
   document.getElementById('thinkEl').style.display='flex';
+  stepInFlight=true;
   setTimeout(()=>{
     document.getElementById('thinkEl').style.display='none';
     renderGrid(G,step.kb,step.ag,false);
@@ -885,6 +889,7 @@ function execStep(){
       document.getElementById('stepBtn').disabled=true;
       setTimeout(()=>showResult(step),900);
     }
+    stepInFlight=false;
   }, thinkTime);
   return si<steps.length;
 }
@@ -928,6 +933,7 @@ function closeResult(){ document.getElementById('resOv').style.display='none'; g
 
 function replayNow(){
   document.getElementById('resOv').style.display='none';
+  stepInFlight=false;
   si=0; phase='ready';
   document.getElementById('aLog').innerHTML='';
   document.getElementById('playBtn').textContent='\u25B6 Begin';
