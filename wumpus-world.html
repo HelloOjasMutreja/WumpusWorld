@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wumpus World</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #06050f;
+  --surf:     #0c0b1c;
+  --surf2:    #100f22;
+  --cell:     #0d0b1e;
+  --cell-vis: #13102b;
+  --border:   #1e1a38;
+  --bordB:    #342e5a;
+  --text:     #d8d0f0;
+  --dim:      #6b6090;
+  --bright:   #ffffff;
+  --agent:    #f5c518;
+  --agentG:   rgba(245,197,24,0.35);
+  --wumpus:   #e03030;
+  --wumpusG:  rgba(224,48,48,0.3);
+  --gold:     #fbbf24;
+  --goldG:    rgba(251,191,36,0.4);
+  --pit:      #07060f;
+  --breeze:   #38bdf8;
+  --breezeG:  rgba(56,189,248,0.15);
+  --stench:   #fb923c;
+  --stenchG:  rgba(251,146,60,0.15);
+  --safe:     #34d399;
+  --danger:   #f87171;
+  --accent:   #7c3aed;
+  --accentG:  rgba(124,58,237,0.15);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'IM Fell English',Georgia,serif;
+  display:flex;flex-direction:column;align-items:center;
+  padding:14px 16px;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(124,58,237,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 20% 80%, rgba(245,197,24,0.03) 0%, transparent 60%);
+}
+/* ── GRAIN ── */
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity:0.04;
+}
+/* ── HEADER ── */
+.hdr{text-align:center;margin-bottom:10px;flex-shrink:0;}
+.hdr h1{
+  font-family:'Cinzel',serif;font-size:2rem;font-weight:900;letter-spacing:0.18em;
+  background:linear-gradient(135deg,#a78bfa 0%,#f5c518 45%,#fb7185 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 24px rgba(167,139,250,0.35));
+  line-height:1.1;
+}
+.hdr .sub{
+  font-size:0.72rem;letter-spacing:0.35em;text-transform:uppercase;
+  color:var(--dim);margin-top:3px;font-family:'Cinzel',serif;
+}
+/* ── PHASE DOTS ── */
+.phases{display:flex;gap:10px;justify-content:center;margin-bottom:10px;align-items:center;}
+.pdot{width:7px;height:7px;border-radius:50%;background:var(--border);transition:all 0.4s;}
+.pdot.active{background:var(--accent);box-shadow:0 0 8px var(--accent);}
+.pdot.done{background:var(--safe);}
+.plabel{font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:0.2em;color:var(--dim);text-transform:uppercase;}
+/* ── MAIN LAYOUT ── */
+.main{display:grid;grid-template-columns:380px 280px;gap:14px;flex:1;min-height:0;width:680px;}
+/* ── GRID PANEL ── */
+.gp{
+  background:var(--surf);border:1px solid var(--border);border-radius:12px;
+  padding:16px;display:flex;flex-direction:column;position:relative;overflow:hidden;
+}
+.gp::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 70% 50% at 50% 50%,rgba(124,58,237,0.04),transparent);
+}
+.gp-title{
+  font-family:'Cinzel',serif;font-size:0.62rem;letter-spacing:0.28em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:10px;text-align:center;flex-shrink:0;
+}
+/* Grid wrapper with coord labels */
+.grid-wrap{flex:1;display:flex;flex-direction:column;min-height:0;}
+.col-labels{display:grid;grid-template-columns:18px repeat(4,1fr);gap:3px;margin-bottom:3px;flex-shrink:0;}
+.cl{font-family:'Cinzel',serif;font-size:0.58rem;color:var(--dim);text-align:center;letter-spacing:0.1em;}
+.grid-rows{display:flex;gap:3px;flex:1;min-height:0;}
+.row-lbls{display:flex;flex-direction:column;justify-content:space-around;width:18px;flex-shrink:0;}
+.rl{font-family:'Cinzel',serif;font-size:0.58rem;color:var(--dim);text-align:right;line-height:1;}
+.wg{flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:3px;min-height:0;}
+/* ── CELL ── */
+.cell{
+  border-radius:6px;border:1px solid var(--border);background:var(--cell);
+  position:relative;display:flex;align-items:center;justify-content:center;
+  transition:background 0.35s,border-color 0.35s,box-shadow 0.35s;
+  overflow:hidden;min-height:0;aspect-ratio:1;
+}
+.cell.vis{background:var(--cell-vis);border-color:var(--bordB);}
+.cell.fog{background:#080715;border-color:#130f22;}
+.cell.fog::after{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(20,15,50,0.25) 5px,rgba(20,15,50,0.25) 6px);
+}
+.cell.cur{
+  border-color:var(--agent);
+  box-shadow:0 0 22px var(--agentG),inset 0 0 16px rgba(245,197,24,0.06);
+  animation:curPulse 2s ease infinite;
+}
+@keyframes curPulse{
+  0%,100%{box-shadow:0 0 18px var(--agentG),inset 0 0 12px rgba(245,197,24,0.05);}
+  50%{box-shadow:0 0 36px rgba(245,197,24,0.5),inset 0 0 24px rgba(245,197,24,0.08);}
+}
+.cell.safe-unk{border-color:rgba(52,211,153,0.25)!important;}
+.cell.pppit{border-color:rgba(56,189,248,0.28)!important;}
+.cell.ppwump{border-color:rgba(251,146,60,0.28)!important;}
+.cell.ppboth{border-color:rgba(248,113,113,0.3)!important;}
+.cell.pit-reveal{background:#07060f;border-color:rgba(56,189,248,0.2);}
+.cell.wump-reveal{background:#150a0a;border-color:rgba(224,48,48,0.2);}
+/* Torch flicker on visited */
+.cell.vis::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 80% 80% at 50% 50%,rgba(245,197,24,0.04),transparent);
+}
+/* Cell icons */
+.cicons{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:1px;padding:3px;z-index:2;}
+.ci{font-size:1.3rem;line-height:1;transition:all 0.3s;user-select:none;}
+/* Percept tags */
+.ptag{
+  position:absolute;font-size:0.5rem;font-family:'Cinzel',serif;letter-spacing:0.05em;
+  padding:1px 3px;border-radius:2px;z-index:3;font-weight:600;
+}
+.ptag.br{background:rgba(56,189,248,0.15);color:var(--breeze);bottom:2px;left:2px;}
+.ptag.st{background:rgba(251,146,60,0.15);color:var(--stench);bottom:2px;right:2px;}
+/* Direction arrow */
+.dirarr{position:absolute;top:2px;right:3px;font-size:0.62rem;color:var(--agent);z-index:4;line-height:1;}
+/* Safe dot */
+.sdot{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--safe);opacity:0.7;z-index:3;}
+/* Reveal animation */
+@keyframes revealCell{from{opacity:0;transform:scale(0.85);}to{opacity:1;transform:scale(1);}}
+.cell.revealing{animation:revealCell 0.4s cubic-bezier(0.34,1.56,0.64,1);}
+/* ── LEGEND ── */
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:8px;flex-shrink:0;}
+.li{display:flex;align-items:center;gap:4px;font-size:0.7rem;color:var(--dim);}
+.li-ic{font-size:0.85rem;}
+.li-bar{width:8px;height:8px;border-radius:2px;border:1px solid;}
+/* ── INFO PANEL ── */
+.ip{display:flex;flex-direction:column;gap:10px;min-height:0;overflow:hidden;}
+.card{background:var(--surf);border:1px solid var(--border);border-radius:9px;padding:12px;flex-shrink:0;}
+.ctitle{
+  font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:0.28em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+}
+/* Status */
+.sbar{display:flex;gap:10px;flex-wrap:wrap;}
+.si{display:flex;align-items:center;gap:5px;font-size:0.78rem;}
+.sdotst{width:5px;height:5px;border-radius:50%;background:var(--safe);flex-shrink:0;}
+.sdotst.d{background:var(--danger);}
+.sdotst.g{background:var(--gold);}
+.sdotst.off{background:var(--dim);}
+#posText{margin-top:7px;font-size:0.72rem;color:var(--dim);font-style:italic;}
+/* Percepts */
+.percg{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.pi{
+  display:flex;align-items:center;gap:5px;padding:5px 7px;border-radius:5px;
+  background:rgba(255,255,255,0.02);border:1px solid transparent;
+  font-size:0.75rem;transition:all 0.3s;
+}
+.pi.on{border-color:rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);}
+.pi.on.st{border-color:rgba(251,146,60,0.25);background:rgba(251,146,60,0.06);}
+.pi.on.br{border-color:rgba(56,189,248,0.25);background:rgba(56,189,248,0.06);}
+.pi.on.gl{border-color:rgba(251,191,36,0.3);background:rgba(251,191,36,0.07);}
+.pi.on.sc{border-color:rgba(52,211,153,0.25);background:rgba(52,211,153,0.06);}
+.pi-ic{font-size:1rem;flex-shrink:0;}
+.pi-nm{color:var(--dim);font-size:0.72rem;font-style:italic;}
+.pi.on .pi-nm{color:var(--text);}
+/* Log */
+.log-scroll{max-height:130px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--bordB) transparent;flex:1;}
+.le{
+  display:flex;align-items:flex-start;gap:7px;padding:5px 0;
+  border-bottom:1px solid rgba(255,255,255,0.025);font-size:0.75rem;
+  animation:fadeUp 0.3s ease;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:translateY(0);}}
+.ln{font-family:'Cinzel',serif;font-size:0.58rem;color:var(--accent);min-width:20px;margin-top:1px;}
+.la{flex:1;}
+.la .at{color:var(--agent);font-style:normal;font-weight:600;}
+.la .ar{color:var(--dim);font-size:0.68rem;margin-top:1px;font-style:italic;line-height:1.3;}
+/* Controls */
+.btns{display:flex;gap:7px;flex-wrap:wrap;}
+.btn{
+  font-family:'Cinzel',serif;font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;
+  padding:8px 14px;border-radius:5px;border:1px solid var(--bordB);
+  background:rgba(124,58,237,0.08);color:var(--text);cursor:pointer;
+  transition:all 0.2s;white-space:nowrap;
+}
+.btn:hover:not(:disabled){
+  background:rgba(124,58,237,0.22);border-color:var(--accent);
+  box-shadow:0 0 12px rgba(124,58,237,0.2);
+}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn.primary:hover:not(:disabled){background:#6d28d9;box-shadow:0 0 18px rgba(124,58,237,0.45);}
+.btn:disabled{opacity:0.35;cursor:not-allowed;}
+.spd{display:flex;align-items:center;gap:7px;margin-top:9px;font-size:0.72rem;color:var(--dim);}
+.spd input[type=range]{flex:1;accent-color:var(--accent);}
+/* ── BOTTOM BAR ── */
+.bbar{
+  flex-shrink:0;width:680px;margin-top:8px;display:flex;justify-content:space-between;
+  align-items:center;padding:9px 14px;
+  background:var(--surf);border:1px solid var(--border);border-radius:7px;
+  font-size:0.75rem;color:var(--dim);
+}
+#statusMsg{flex:1;font-style:italic;}
+.think{display:flex;gap:3px;align-items:center;margin-left:12px;}
+.td{width:4px;height:4px;border-radius:50%;background:var(--accent);animation:td 1.2s ease infinite;}
+.td:nth-child(1){animation-delay:0s;}
+.td:nth-child(2){animation-delay:0.2s;}
+.td:nth-child(3){animation-delay:0.4s;}
+@keyframes td{0%,80%,100%{transform:scale(1);opacity:0.3;}40%{transform:scale(1.5);opacity:1;}}
+#statsT{font-size:0.68rem;margin-left:10px;white-space:nowrap;}
+/* ── PEEK OVERLAY ── */
+.peek-ov{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:6px;z-index:20;border-radius:12px;
+  background:rgba(6,5,15,0.88);backdrop-filter:blur(4px);
+}
+.peek-ttl{font-family:'Cinzel',serif;font-size:0.9rem;color:var(--gold);letter-spacing:0.2em;text-align:center;}
+.peek-num{font-family:'Cinzel',serif;font-size:3.5rem;font-weight:900;color:var(--text);line-height:1;}
+.peek-sub{font-size:0.75rem;color:var(--dim);font-style:italic;}
+/* ── RESULT OVERLAY ── */
+.res-ov{
+  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(6,5,15,0.92);z-index:100;backdrop-filter:blur(10px);
+}
+.res-card{
+  background:var(--surf2);border:1px solid var(--bordB);border-radius:16px;
+  padding:36px 40px;text-align:center;max-width:380px;width:90%;
+  animation:resIn 0.55s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow:0 0 60px rgba(124,58,237,0.15);
+}
+@keyframes resIn{from{opacity:0;transform:scale(0.75) translateY(20px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.res-ic{font-size:4rem;margin-bottom:12px;display:block;}
+.res-title{font-family:'Cinzel',serif;font-size:1.9rem;font-weight:900;margin-bottom:8px;}
+.res-title.win{background:linear-gradient(135deg,var(--gold),#f5c518);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.res-title.lose{color:var(--danger);}
+.res-desc{color:var(--dim);font-size:0.9rem;margin-bottom:20px;line-height:1.6;font-style:italic;}
+.res-stats{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;
+  background:rgba(255,255,255,0.025);border-radius:8px;padding:12px;
+}
+.rs-item{text-align:center;}
+.rs-val{font-family:'Cinzel',serif;font-size:1.4rem;color:var(--text);}
+.rs-lbl{font-size:0.65rem;color:var(--dim);letter-spacing:0.15em;text-transform:uppercase;font-family:'Cinzel',serif;}
+/* Floating action text */
+.float-action{
+  position:fixed;pointer-events:none;z-index:200;
+  font-family:'Cinzel',serif;font-size:0.8rem;font-weight:600;
+  letter-spacing:0.1em;text-transform:uppercase;
+  animation:floatUp 1.2s ease forwards;
+  text-shadow:0 0 10px currentColor;
+}
+@keyframes floatUp{
+  0%{opacity:1;transform:translateY(0);}
+  100%{opacity:0;transform:translateY(-40px);}
+}
+/* Scrollable log card */
+.log-card{background:var(--surf);border:1px solid var(--border);border-radius:9px;padding:12px;display:flex;flex-direction:column;flex:1;min-height:0;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>WUMPUS WORLD</h1>
+  <div class="sub">Logic · Inference · Survival</div>
+</div>
+
+<div class="phases">
+  <div class="pdot active" id="ph1"></div>
+  <div class="plabel" id="ph-lbl">Map Generation</div>
+  <div class="pdot" id="ph2"></div>
+  <div class="plabel">Exploration</div>
+  <div class="pdot" id="ph3"></div>
+</div>
+
+<div class="main">
+  <!-- ═══ GRID PANEL ═══ -->
+  <div class="gp" id="gridPanel">
+    <div class="gp-title" id="gTitle">The Cave — Awaiting Adventure</div>
+    <div class="grid-wrap">
+      <div class="col-labels">
+        <div class="cl"></div>
+        <div class="cl">A</div><div class="cl">B</div><div class="cl">C</div><div class="cl">D</div>
+      </div>
+      <div class="grid-rows">
+        <div class="row-lbls">
+          <div class="rl">4</div><div class="rl">3</div><div class="rl">2</div><div class="rl">1</div>
+        </div>
+        <div class="wg" id="wgrid"></div>
+      </div>
+    </div>
+    <div class="legend">
+      <div class="li"><span class="li-ic">🧭</span>Agent</div>
+      <div class="li"><span class="li-ic">👹</span>Wumpus</div>
+      <div class="li"><span class="li-ic">🕳️</span>Pit</div>
+      <div class="li"><span class="li-ic">💎</span>Gold</div>
+      <div class="li"><div class="li-bar" style="border-color:var(--breeze);background:rgba(56,189,248,0.1)"></div>Breeze</div>
+      <div class="li"><div class="li-bar" style="border-color:var(--stench);background:rgba(251,146,60,0.1)"></div>Stench</div>
+      <div class="li"><div class="li-bar" style="border-color:var(--safe);background:rgba(52,211,153,0.1)"></div>Safe (inferred)</div>
+    </div>
+    <!-- PEEK OVERLAY -->
+    <div class="peek-ov" id="peekOv" style="display:none">
+      <div class="peek-ttl">⚡ Surveying the Cave</div>
+      <div class="peek-num" id="peekNum">5</div>
+      <div class="peek-sub">Memorise the dangers before darkness falls...</div>
+    </div>
+  </div>
+
+  <!-- ═══ INFO PANEL ═══ -->
+  <div class="ip">
+    <!-- Agent Status -->
+    <div class="card">
+      <div class="ctitle">Agent Status</div>
+      <div class="sbar">
+        <div class="si"><div class="sdotst" id="dAlive"></div><span id="tAlive">Alive</span></div>
+        <div class="si"><div class="sdotst g" id="dGold"></div><span id="tGold">No Gold</span></div>
+        <div class="si"><div class="sdotst" id="dArrow"></div><span id="tArrow">Arrow Ready</span></div>
+      </div>
+      <div id="posText">Position: (1, 1) · Facing East</div>
+    </div>
+
+    <!-- Percepts -->
+    <div class="card">
+      <div class="ctitle">Current Percepts</div>
+      <div class="percg">
+        <div class="pi st" id="p-stench"><span class="pi-ic">🌡️</span><span class="pi-nm">Stench</span></div>
+        <div class="pi br" id="p-breeze"><span class="pi-ic">🌀</span><span class="pi-nm">Breeze</span></div>
+        <div class="pi gl" id="p-glitter"><span class="pi-ic">✨</span><span class="pi-nm">Glitter</span></div>
+        <div class="pi" id="p-bump"><span class="pi-ic">💥</span><span class="pi-nm">Bump</span></div>
+        <div class="pi sc" id="p-scream"><span class="pi-ic">😱</span><span class="pi-nm">Scream</span></div>
+      </div>
+    </div>
+
+    <!-- Action Log -->
+    <div class="log-card">
+      <div class="ctitle">
+        <span>Action Log</span>
+        <span id="stepCnt" style="color:var(--accent);font-size:0.65rem">Step 0</span>
+      </div>
+      <div class="log-scroll" id="aLog"></div>
+    </div>
+
+    <!-- Controls -->
+    <div class="card">
+      <div class="ctitle">Controls</div>
+      <div class="btns">
+        <button class="btn primary" id="genBtn" onclick="generateNewMap()">⚄ New Map</button>
+        <button class="btn" id="playBtn" onclick="togglePlay()" disabled>▶ Begin</button>
+        <button class="btn" id="stepBtn" onclick="doStep()" disabled>⏭ Step</button>
+      </div>
+      <div class="spd">
+        <span>Speed</span>
+        <input type="range" id="spdR" min="200" max="2200" value="900" step="100">
+        <span id="spdL">0.9s</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="bbar">
+  <div id="statusMsg">Generate a new map to begin your adventure into the cave</div>
+  <div class="think" id="thinkEl" style="display:none">
+    <div class="td"></div><div class="td"></div><div class="td"></div>
+  </div>
+  <div id="statsT">—</div>
+</div>
+
+<!-- RESULT OVERLAY -->
+<div class="res-ov" id="resOv" style="display:none">
+  <div class="res-card">
+    <span class="res-ic" id="resIc">🏆</span>
+    <div class="res-title win" id="resTitle">Victory!</div>
+    <div class="res-desc" id="resDesc">The agent retrieved the gold and escaped the cave!</div>
+    <div class="res-stats" id="resStats"></div>
+    <div class="btns" style="justify-content:center;gap:10px">
+      <button class="btn primary" onclick="closeResult()">New Map</button>
+      <button class="btn" onclick="replayNow()">Replay</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  WUMPUS WORLD — Core Engine
+// ═══════════════════════════════════════════
+
+// Directions: 0=East, 1=North, 2=West, 3=South
+const DVEC  = [[0,1],[-1,0],[0,-1],[1,0]];
+const DSYM  = ['→','↑','←','↓'];
+const DNAME = ['East','North','West','South'];
+
+let G = null;          // 4×4 grid
+let steps = null;      // pre-computed step sequence
+let si = 0;            // current step index
+let timer = null;
+let phase = 'idle';    // idle|peek|ready|playing|paused|done
+
+// ── Grid cell factory ──
+function mkCell(){
+  return { wumpus:false, pit:false, gold:false, percepts:null };
+}
+
+function key(r,c){ return r*4+c; }
+function rc(k){ return {r:Math.floor(k/4),c:k%4}; }
+function adj(r,c){
+  return DVEC.map(([dr,dc])=>[r+dr,c+dc]).filter(([nr,nc])=>nr>=0&&nr<4&&nc>=0&&nc<4);
+}
+
+// ── Map Generation ──
+function generateMap(){
+  const g = Array.from({length:4},()=>Array.from({length:4},mkCell));
+  const all = [];
+  for(let r=0;r<4;r++) for(let c=0;c<4;c++) all.push([r,c]);
+
+  // Wumpus — not at (3,0), not at start neighbours
+  const wBanned = new Set([key(3,0)]);
+  adj(3,0).forEach(([r,c])=>wBanned.add(key(r,c))); // avoid adjacent to start too
+  const wPool = all.filter(([r,c])=>!wBanned.has(key(r,c)));
+  const [wr,wc] = wPool[rnd(wPool.length)];
+  g[wr][wc].wumpus = true;
+
+  // Pits — not at (3,0)
+  const pBanned = new Set([key(3,0),key(wr,wc)]);
+  const pPool = all.filter(([r,c])=>!pBanned.has(key(r,c)));
+  shuffle(pPool);
+  const nPits = 2 + (Math.random()<0.5?1:0);
+  for(let i=0;i<Math.min(nPits,pPool.length);i++) g[pPool[i][0]][pPool[i][1]].pit = true;
+
+  // Gold — not at (3,0), not at dangers
+  const gBanned = new Set([key(3,0)]);
+  for(let r=0;r<4;r++) for(let c=0;c<4;c++) if(g[r][c].wumpus||g[r][c].pit) gBanned.add(key(r,c));
+  const gPool = all.filter(([r,c])=>!gBanned.has(key(r,c)));
+  const [gr,gc] = gPool[rnd(gPool.length)];
+  g[gr][gc].gold = true;
+
+  return g;
+}
+
+function rnd(n){ return Math.floor(Math.random()*n); }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+// ── Percept Calculation ──
+function percepts(g,r,c,wAlive){
+  const nb = adj(r,c);
+  return {
+    stench:  wAlive && nb.some(([ar,ac])=>g[ar][ac].wumpus),
+    breeze:  nb.some(([ar,ac])=>g[ar][ac].pit),
+    glitter: g[r][c].gold,
+    bump:    false,
+    scream:  false,
+  };
+}
+
+// ── Knowledge Base ──
+function mkKB(){
+  const safe   = new Set(); // confirmed safe
+  const vis    = new Set(); // visited
+  const noPit  = new Set(); // confirmed no pit
+  const noWump = new Set(); // confirmed no wumpus
+  const maybePit  = new Set();
+  const maybeWump = new Set();
+  const confWump  = new Set();
+
+  return {
+    safe, vis, noPit, noWump, maybePit, maybeWump, confWump,
+
+    markSafe(r,c){
+      const k=key(r,c); safe.add(k); noPit.add(k); noWump.add(k);
+      maybePit.delete(k); maybeWump.delete(k);
+    },
+
+    tell(r,c,p){
+      const k=key(r,c);
+      vis.add(k); this.markSafe(r,c);
+      const nb = adj(r,c);
+      if(!p.breeze){
+        nb.forEach(([ar,ac])=>{ noPit.add(key(ar,ac)); maybePit.delete(key(ar,ac)); });
+      } else {
+        nb.forEach(([ar,ac])=>{ const ak=key(ar,ac); if(!vis.has(ak)&&!noPit.has(ak)) maybePit.add(ak); });
+      }
+      if(!p.stench){
+        nb.forEach(([ar,ac])=>{ noWump.add(key(ar,ac)); maybeWump.delete(key(ar,ac)); });
+      } else {
+        nb.forEach(([ar,ac])=>{ const ak=key(ar,ac); if(!vis.has(ak)&&!noWump.has(ak)) maybeWump.add(ak); });
+      }
+      this._infer();
+    },
+
+    _infer(){
+      // If only one unvisited possibly-wumpus cell remains → confirmed
+      const cands = [...maybeWump].filter(k=>!noWump.has(k)&&!vis.has(k));
+      if(cands.length===1) confWump.add(cands[0]);
+      else if(cands.length===0){} // wumpus might be visited (shot)
+    },
+
+    isSafe(r,c){ const k=key(r,c); return safe.has(k)||(noPit.has(k)&&noWump.has(k)); },
+
+    safeFrontier(){
+      const res=[]; const seen=new Set();
+      for(const vk of vis){
+        const {r,c}=rc(+vk);
+        adj(r,c).forEach(([ar,ac])=>{
+          const ak=key(ar,ac);
+          if(!vis.has(ak)&&this.isSafe(ar,ac)&&!seen.has(ak)){ res.push({r:ar,c:ac}); seen.add(ak); }
+        });
+      }
+      return res;
+    },
+
+    snap(){
+      return {
+        safe:new Set(safe), vis:new Set(vis),
+        noPit:new Set(noPit), noWump:new Set(noWump),
+        maybePit:new Set(maybePit), maybeWump:new Set(maybeWump),
+        confWump:new Set(confWump),
+        isSafe:(r,c)=>{ const k=key(r,c); return safe.has(k)||(noPit.has(k)&&noWump.has(k)); }
+      };
+    }
+  };
+}
+
+// ── BFS through safe cells ──
+function bfs(kb, fr,fc, tr,tc){
+  const q=[[fr,fc,[]]]; const seen=new Set([key(fr,fc)]);
+  while(q.length){
+    const [r,c,path]=q.shift();
+    if(r===tr&&c===tc) return path;
+    for(const [nr,nc] of adj(r,c)){
+      const k=key(nr,nc);
+      if(!seen.has(k)&&kb.isSafe(nr,nc)){ seen.add(k); q.push([nr,nc,[...path,[nr,nc]]]) }
+    }
+  }
+  return null;
+}
+
+// ── Direction helper ──
+function dirTo(fr,fc,tr,tc){
+  if(tc>fc) return 0;
+  if(tr<fr) return 1;
+  if(tc<fc) return 2;
+  return 3;
+}
+
+// ── AI Simulation (pre-compute all steps) ──
+function simulate(g){
+  const ss=[]; const kb=mkKB();
+  let wAlive=true;
+  const ag={r:3,c:0,dir:0,alive:true,gold:false,arrow:true,climbed:false};
+
+  function rec(action,reasoning,extraP={}){
+    const p=percepts(g,ag.r,ag.c,wAlive);
+    const fp={...p,...extraP};
+    ss.push({ ag:{...ag}, kb:kb.snap(), action, percepts:fp, reasoning, wAlive });
+  }
+
+  kb.markSafe(3,0);
+  kb.tell(3,0,percepts(g,3,0,wAlive));
+  rec('START','Entered the cave at (A,1) — the only known safe square');
+
+  let max=80;
+  while(!ag.climbed&&ag.alive&&max-->0){
+    const p=percepts(g,ag.r,ag.c,wAlive);
+
+    // Death check
+    if(g[ag.r][ag.c].pit){ ag.alive=false; rec('PIT','Stepped into a bottomless pit — game over!'); break; }
+    if(g[ag.r][ag.c].wumpus&&wAlive){ ag.alive=false; rec('EATEN','The Wumpus lurked here — the agent was devoured!'); break; }
+
+    // Grab gold
+    if(p.glitter&&!ag.gold){
+      ag.gold=true;
+      rec('GRAB','Gold found! Picked it up — now to get out alive...');
+      continue;
+    }
+
+    // Return home if have gold
+    if(ag.gold){
+      if(ag.r===3&&ag.c===0){ ag.climbed=true; rec('CLIMB','Back at the entrance — climbing to safety! ⚡'); break; }
+      const path=bfs(kb.snap(),ag.r,ag.c,3,0);
+      if(path&&path.length>0){
+        const [nr,nc]=path[0];
+        ag.dir=dirTo(ag.r,ag.c,nr,nc); ag.r=nr; ag.c=nc;
+        kb.tell(nr,nc,percepts(g,nr,nc,wAlive));
+        rec('MOVE_HOME',`Heading home with the gold — moving to (${colLabel(nc)},${4-nr})`);
+        continue;
+      }
+    }
+
+    // Try shooting if wumpus confirmed and in line
+    if(ag.arrow&&kb.confWump.size>0){
+      const wk=[...kb.confWump][0]; const {r:wr,c:wc}=rc(+wk);
+      if(wr===ag.r&&wc>ag.c){ ag.dir=0; ag.arrow=false; wAlive=false; kb.noWump.add(key(wr,wc)); kb.confWump.delete(key(wr,wc)); kb.markSafe(wr,wc); rec('SHOOT',`Fired arrow East — hit Wumpus at (${colLabel(wc)},${4-wr})! Cave echoes with a scream`,{scream:true}); continue; }
+      if(wr===ag.r&&wc<ag.c){ ag.dir=2; ag.arrow=false; wAlive=false; kb.noWump.add(key(wr,wc)); kb.confWump.delete(key(wr,wc)); kb.markSafe(wr,wc); rec('SHOOT',`Fired arrow West — hit Wumpus at (${colLabel(wc)},${4-wr})! Cave echoes with a scream`,{scream:true}); continue; }
+      if(wc===ag.c&&wr<ag.r){ ag.dir=1; ag.arrow=false; wAlive=false; kb.noWump.add(key(wr,wc)); kb.confWump.delete(key(wr,wc)); kb.markSafe(wr,wc); rec('SHOOT',`Fired arrow North — hit Wumpus at (${colLabel(wc)},${4-wr})! Cave echoes with a scream`,{scream:true}); continue; }
+      if(wc===ag.c&&wr>ag.r){ ag.dir=3; ag.arrow=false; wAlive=false; kb.noWump.add(key(wr,wc)); kb.confWump.delete(key(wr,wc)); kb.markSafe(wr,wc); rec('SHOOT',`Fired arrow South — hit Wumpus at (${colLabel(wc)},${4-wr})! Cave echoes with a scream`,{scream:true}); continue; }
+    }
+
+    // Explore safe frontier
+    const fr=kb.safeFrontier();
+    if(fr.length>0){
+      let best=null,bestPath=null,bestD=Infinity;
+      for(const t of fr){
+        const path=bfs(kb.snap(),ag.r,ag.c,t.r,t.c);
+        if(path&&path.length<bestD){ bestD=path.length; best=t; bestPath=path; }
+      }
+      if(bestPath&&bestPath.length>0){
+        const [nr,nc]=bestPath[0];
+        ag.dir=dirTo(ag.r,ag.c,nr,nc); ag.r=nr; ag.c=nc;
+        kb.tell(nr,nc,percepts(g,nr,nc,wAlive));
+        rec('MOVE',`Safe inference confirmed — moving to (${colLabel(nc)},${4-nr})`);
+        continue;
+      }
+    }
+
+    // Stuck — no safe moves
+    rec('STUCK','No safe moves available. The agent is trapped in uncertainty.');
+    break;
+  }
+
+  // Store percepts on grid cells
+  ss.forEach(st=>{ if(st.kb.vis.has(key(st.ag.r,st.ag.c))) g[st.ag.r][st.ag.c].percepts=st.percepts; });
+  return ss;
+}
+
+function colLabel(c){ return ['A','B','C','D'][c]; }
+
+// ═══════════════════════════════════════════
+//  Rendering
+// ═══════════════════════════════════════════
+function renderGrid(g,kb,ag,revealAll){
+  const el=document.getElementById('wgrid');
+  el.innerHTML='';
+  for(let r=0;r<4;r++){
+    for(let c=0;c<4;c++){
+      const cell=g[r][c];
+      const div=document.createElement('div');
+      div.className='cell';
+      div.id=`c${r}${c}`;
+
+      const isAg   = ag&&ag.r===r&&ag.c===c;
+      const isVis  = kb&&kb.vis.has(key(r,c));
+      const isSafe = kb&&kb.isSafe(r,c);
+      const isMbP  = kb&&kb.maybePit.has(key(r,c))&&!isVis;
+      const isMbW  = kb&&kb.maybeWump.has(key(r,c))&&!isVis;
+
+      if(revealAll||isVis) div.classList.add('vis');
+      else div.classList.add('fog');
+      if(isAg) div.classList.add('cur');
+
+      // KB border hints (unvisited only)
+      if(!revealAll&&!isVis&&kb){
+        if(isSafe) div.classList.add('safe-unk');
+        else if(isMbP&&isMbW) div.classList.add('ppboth');
+        else if(isMbP) div.classList.add('pppit');
+        else if(isMbW) div.classList.add('ppwump');
+      }
+
+      // Danger cell backgrounds in reveal
+      if(revealAll){
+        if(cell.pit) div.classList.add('pit-reveal');
+        if(cell.wumpus) div.classList.add('wump-reveal');
+      }
+
+      // Icons
+      const icDiv=document.createElement('div');
+      icDiv.className='cicons';
+
+      const show = revealAll||isVis;
+      const icons=[];
+      if(isAg) icons.push({ic:'🧭',glow:'var(--agent)'});
+      if(show){
+        if(cell.wumpus) icons.push({ic:'👹',glow:'var(--wumpus)'});
+        if(cell.pit)    icons.push({ic:'🕳️',glow:null});
+        if(cell.gold&&!(ag&&ag.gold)) icons.push({ic:'💎',glow:'var(--gold)'});
+      }
+
+      icons.forEach(({ic,glow})=>{
+        const s=document.createElement('span');
+        s.className='ci'; s.textContent=ic;
+        if(glow) s.style.filter=`drop-shadow(0 0 7px ${glow})`;
+        icDiv.appendChild(s);
+      });
+      div.appendChild(icDiv);
+
+      // Percept tags (visited cells)
+      if((revealAll||isVis)&&cell.percepts){
+        if(cell.percepts.breeze){const t=document.createElement('div');t.className='ptag br';t.textContent='≋';div.appendChild(t);}
+        if(cell.percepts.stench){const t=document.createElement('div');t.className='ptag st';t.textContent='※';div.appendChild(t);}
+      }
+
+      // Direction arrow on agent
+      if(isAg&&ag){
+        const a=document.createElement('div');a.className='dirarr';a.textContent=DSYM[ag.dir];div.appendChild(a);
+      }
+
+      // Safe dot on unvisited-but-safe
+      if(!revealAll&&!isVis&&isSafe&&kb){
+        const d=document.createElement('div');d.className='sdot';div.appendChild(d);
+      }
+
+      el.appendChild(div);
+    }
+  }
+}
+
+function updPercepts(p){
+  const map={stench:'p-stench',breeze:'p-breeze',glitter:'p-glitter',bump:'p-bump',scream:'p-scream'};
+  for(const[name,id] of Object.entries(map)){
+    const el=document.getElementById(id);
+    if(p&&p[name]) el.classList.add('on');
+    else el.classList.remove('on');
+  }
+}
+
+const ACTION_LABELS={
+  START:'🚪 Entered Cave',MOVE:'👣 Moved',MOVE_HOME:'🏃 Heading Home',
+  GRAB:'✋ Grabbed Gold',CLIMB:'🏆 Escaped!',SHOOT:'🏹 Fired Arrow',
+  STUCK:'⚠️ Stuck',PIT:'💀 Fell in Pit',EATEN:'👹 Devoured!',
+};
+
+function addLog(stepN,action,reasoning){
+  const log=document.getElementById('aLog');
+  const e=document.createElement('div');
+  e.className='le';
+  e.innerHTML=`<div class="ln">${stepN}</div><div class="la"><span class="at">${ACTION_LABELS[action]||action}</span><div class="ar">${reasoning}</div></div>`;
+  log.appendChild(e); log.scrollTop=log.scrollHeight;
+}
+
+function updStatus(ag,stepN){
+  document.getElementById('dAlive').className='sdotst'+(ag.alive?'':' d');
+  document.getElementById('tAlive').textContent=ag.alive?'Alive':'Dead';
+  document.getElementById('dGold').className='sdotst g'+(ag.gold?' on':'');
+  document.getElementById('tGold').textContent=ag.gold?'Gold ✓':'No Gold';
+  document.getElementById('dArrow').className='sdotst'+(ag.arrow?'':' off');
+  document.getElementById('tArrow').textContent=ag.arrow?'Arrow Ready':'Arrow Used';
+  document.getElementById('posText').textContent=`Position: (${colLabel(ag.c)}, ${4-ag.r}) · Facing ${DNAME[ag.dir]}`;
+  document.getElementById('stepCnt').textContent=`Step ${stepN}`;
+}
+
+function setStatus(m){ document.getElementById('statusMsg').textContent=m; }
+
+function updPhase(n){
+  for(let i=1;i<=3;i++){
+    const el=document.getElementById(`ph${i}`);
+    el.className='pdot'+(i<n?' done':i===n?' active':'');
+  }
+}
+
+function floatText(text,color,r,c){
+  const el=document.getElementById(`c${r}${c}`);
+  if(!el) return;
+  const rect=el.getBoundingClientRect();
+  const d=document.createElement('div');
+  d.className='float-action';
+  d.style.left=rect.left+rect.width/2+'px';
+  d.style.top=rect.top+'px';
+  d.style.color=color;
+  d.style.transform='translateX(-50%)';
+  d.textContent=text;
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(),1300);
+}
+
+// ═══════════════════════════════════════════
+//  Game Flow
+// ═══════════════════════════════════════════
+function generateNewMap(){
+  if(timer){clearInterval(timer);timer=null;}
+  phase='peek';
+  G=generateMap();
+  steps=null; si=0;
+  document.getElementById('aLog').innerHTML='';
+  document.getElementById('resOv').style.display='none';
+  document.getElementById('playBtn').disabled=true;
+  document.getElementById('stepBtn').disabled=true;
+  document.getElementById('playBtn').textContent='▶ Begin';
+  updPhase(1);
+  setStatus('Surveying the cave — memorise the dangers before darkness falls!');
+
+  // Full reveal for peek
+  renderGrid(G,null,{r:3,c:0,dir:0,alive:true,gold:false,arrow:true},true);
+  document.getElementById('gTitle').textContent='The Cave — Full Survey (Memorise!)';
+  updPercepts(null);
+  updStatus({r:3,c:0,dir:0,alive:true,gold:false,arrow:true,climbed:false},0);
+  document.getElementById('statsT').textContent='—';
+  document.getElementById('peekOv').style.display='flex';
+
+  let t=5;
+  document.getElementById('peekNum').textContent=t;
+  const pi=setInterval(()=>{
+    t--;
+    document.getElementById('peekNum').textContent=t;
+    if(t<=0){
+      clearInterval(pi);
+      document.getElementById('peekOv').style.display='none';
+      // Pre-simulate
+      steps=simulate(G);
+      phase='ready';
+      updPhase(2);
+      const startKB=mkKB(); startKB.markSafe(3,0); startKB.tell(3,0,percepts(G,3,0,true));
+      renderGrid(G,startKB.snap(),{r:3,c:0,dir:0,alive:true,gold:false,arrow:true},false);
+      document.getElementById('gTitle').textContent="The Cave — Agent's Knowledge";
+      setStatus('Map ready! Press ▶ Begin for auto-play or ⏭ Step to go one step at a time.');
+      document.getElementById('playBtn').disabled=false;
+      document.getElementById('stepBtn').disabled=false;
+      // Show initial percepts
+      const p0=percepts(G,3,0,true); updPercepts(p0);
+    }
+  },1000);
+}
+
+function togglePlay(){
+  if(!G||!steps) return;
+  if(phase==='playing'){
+    clearInterval(timer); timer=null; phase='paused';
+    document.getElementById('playBtn').textContent='▶ Resume';
+    setStatus('Paused — press Resume to continue');
+    return;
+  }
+  if(phase==='done') return;
+  phase='playing';
+  document.getElementById('playBtn').textContent='⏸ Pause';
+  updPhase(3);
+  document.getElementById('genBtn').disabled=true;
+  autoRun();
+}
+
+function autoRun(){
+  const spd=parseInt(document.getElementById('spdR').value);
+  timer=setInterval(()=>{
+    const more=execStep();
+    if(!more){ clearInterval(timer); timer=null; document.getElementById('genBtn').disabled=false; }
+  },spd);
+}
+
+function doStep(){
+  if(!G||!steps||phase==='done') return;
+  if(phase==='ready'||phase==='paused'){
+    phase='playing'; updPhase(3);
+    document.getElementById('playBtn').textContent='⏸ Pause';
+    document.getElementById('genBtn').disabled=true;
+  }
+  execStep();
+}
+
+function execStep(){
+  if(!steps||si>=steps.length) return false;
+  const step=steps[si]; si++;
+
+  document.getElementById('thinkEl').style.display='flex';
+  setTimeout(()=>{
+    document.getElementById('thinkEl').style.display='none';
+    renderGrid(G,step.kb,step.ag,false);
+    updPercepts(step.percepts);
+    updStatus(step.ag,si);
+    addLog(si,step.action,step.reasoning);
+    setStatus(step.reasoning);
+    document.getElementById('statsT').textContent=`${step.kb.vis.size} explored · ${step.kb.safe.size} safe known`;
+
+    // Float action text
+    const floatMap={GRAB:['✨ GOLD!','var(--gold)'],SHOOT:['🏹 THWACK!','var(--stench)'],PIT:['💀 PIT!','var(--danger)'],EATEN:['👹 WUMPUS!','var(--wumpus)'],CLIMB:['🏆 ESCAPE!','var(--gold)']};
+    if(floatMap[step.action]) floatText(floatMap[step.action][0],floatMap[step.action][1],step.ag.r,step.ag.c);
+
+    // Terminal?
+    if(['CLIMB','PIT','EATEN','STUCK'].includes(step.action)){
+      if(timer){clearInterval(timer);timer=null;}
+      phase='done'; updPhase(3);
+      document.getElementById('playBtn').textContent='▶ Begin';
+      document.getElementById('genBtn').disabled=false;
+      document.getElementById('playBtn').disabled=true;
+      document.getElementById('stepBtn').disabled=true;
+      setTimeout(()=>showResult(step),900);
+    }
+  },60);
+  return si<steps.length;
+}
+
+function showResult(step){
+  const overlay=document.getElementById('resOv');
+  const title=document.getElementById('resTitle');
+  const icon=document.getElementById('resIc');
+  const desc=document.getElementById('resDesc');
+  const statsEl=document.getElementById('resStats');
+
+  if(step.action==='CLIMB'){
+    icon.textContent='🏆'; title.textContent='Victory!'; title.className='res-title win';
+    desc.textContent='The agent navigated the cave with pure logic and escaped with the gold!';
+  } else if(step.action==='PIT'){
+    icon.textContent='💀'; title.textContent='Fell in a Pit'; title.className='res-title lose';
+    desc.textContent='The cave swallowed the agent whole. An endless darkness awaits below...';
+  } else if(step.action==='EATEN'){
+    icon.textContent='👹'; title.textContent='Devoured!'; title.className='res-title lose';
+    desc.textContent='The Wumpus lurked unseen. The adventurer met their fate in the shadows.';
+  } else {
+    icon.textContent='🌑'; title.textContent='Stranded'; title.className='res-title lose';
+    desc.textContent='Surrounded by uncertainty, the agent made no more progress. The cave keeps its secrets.';
+  }
+
+  const explored=step.kb.vis.size;
+  const outcome=step.action==='CLIMB'?'Win':step.ag.alive?'Stalemate':'Loss';
+  statsEl.innerHTML=`
+    <div class="rs-item"><div class="rs-val">${si}</div><div class="rs-lbl">Steps Taken</div></div>
+    <div class="rs-item"><div class="rs-val">${explored}</div><div class="rs-lbl">Cells Found</div></div>
+    <div class="rs-item"><div class="rs-val">${outcome}</div><div class="rs-lbl">Outcome</div></div>
+    <div class="rs-item"><div class="rs-val">${step.ag.arrow?'Yes':'No'}</div><div class="rs-lbl">Arrow Left</div></div>
+  `;
+
+  // Reveal full map
+  renderGrid(G,step.kb,step.ag,true);
+  document.getElementById('gTitle').textContent='The Cave — Fully Revealed';
+  overlay.style.display='flex';
+}
+
+function closeResult(){ document.getElementById('resOv').style.display='none'; generateNewMap(); }
+
+function replayNow(){
+  document.getElementById('resOv').style.display='none';
+  si=0; phase='ready';
+  document.getElementById('aLog').innerHTML='';
+  document.getElementById('playBtn').textContent='▶ Begin';
+  document.getElementById('playBtn').disabled=false;
+  document.getElementById('stepBtn').disabled=false;
+  document.getElementById('genBtn').disabled=false;
+  updPhase(2);
+  const kb0=mkKB(); kb0.markSafe(3,0); kb0.tell(3,0,percepts(G,3,0,true));
+  renderGrid(G,kb0.snap(),{r:3,c:0,dir:0,alive:true,gold:false,arrow:true},false);
+  updPercepts(percepts(G,3,0,true));
+  updStatus({r:3,c:0,dir:0,alive:true,gold:false,arrow:true,climbed:false},0);
+  document.getElementById('gTitle').textContent="The Cave — Agent's Knowledge";
+  setStatus('Replay ready — press ▶ Begin or ⏭ Step');
+}
+
+// Speed slider
+document.getElementById('spdR').addEventListener('input',function(){
+  const v=parseInt(this.value);
+  document.getElementById('spdL').textContent=(v/1000).toFixed(1)+'s';
+  if(timer&&phase==='playing'){ clearInterval(timer); autoRun(); }
+});
+
+// ── Init: empty grid ──
+(function init(){
+  const el=document.getElementById('wgrid');
+  el.innerHTML='';
+  for(let i=0;i<16;i++){
+    const d=document.createElement('div');
+    d.className='cell fog';
+    el.appendChild(d);
+  }
+})();
+</script>
+</body>
+</html>
