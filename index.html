@@ -57,15 +57,6 @@ body{
   font-size:0.62rem;letter-spacing:0.22em;text-transform:uppercase;
   color:var(--dim);margin-top:2px;font-weight:500;opacity:0.8;
 }
-/* ── PHASE DOTS (in header) ── */
-.phases{
-  display:flex;gap:6px;align-items:center;margin-left:auto;
-}
-.pdot{width:7px;height:7px;border-radius:50%;background:var(--border);transition:all 0.4s;}
-.pdot.active{background:var(--accent);box-shadow:0 0 6px rgba(104,64,192,0.5);}
-.pdot.done{background:var(--safe);}
-.plabel{font-size:0.58rem;letter-spacing:0.14em;color:var(--dim);text-transform:uppercase;font-weight:500;}
-
 /* ── STATUS ROW ── */
 .status-row{
   flex-shrink:0;width:100%;max-width:960px;
@@ -319,12 +310,11 @@ body{
 @media (max-width: 560px){
   body{padding:8px;}
   .hdr{flex-direction:column;align-items:flex-start;gap:6px;}
-  .phases{margin-left:0;justify-content:flex-start;flex-wrap:wrap;gap:4px 8px;}
   .main{gap:8px;}
   .status-row{padding:6px 10px;}
   .gp,.card,.log-card{padding:10px;}
   .col-labels{grid-template-columns:14px repeat(4,1fr);}
-  .cl,.plabel,#statusMsg,#posText,.li,.pi,.ln,.la .ar{font-size:clamp(0.55rem,2.2vw,0.72rem);}
+  .cl,#statusMsg,#posText,.li,.pi,.ln,.la .ar{font-size:clamp(0.55rem,2.2vw,0.72rem);}
   .ci{font-size:1.25rem;}
   .dirarr{font-size:0.66rem;}
   .btn{padding:7px 10px;}
@@ -350,14 +340,6 @@ body{
   <div class="hdr-title">
     <h1>WUMPUS WORLD</h1>
     <div class="sub">Logic · Inference · Survival</div>
-  </div>
-  <div class="phases">
-    <div class="pdot active" id="ph1"></div>
-    <div class="plabel">Map</div>
-    <div class="pdot" id="ph2"></div>
-    <div class="plabel">Explore</div>
-    <div class="pdot" id="ph3"></div>
-    <div class="plabel">Done</div>
   </div>
 </div>
 
@@ -405,7 +387,7 @@ body{
       <div class="ctitle">Agent Status</div>
       <div class="sbar">
         <div class="si"><div class="sdotst" id="dAlive"></div><span id="tAlive">Alive</span></div>
-        <div class="si"><div class="sdotst g" id="dGold"></div><span id="tGold">No Gold</span></div>
+        <div class="si"><div class="sdotst off" id="dGold"></div><span id="tGold">No Gold</span></div>
         <div class="si"><div class="sdotst" id="dArrow"></div><span id="tArrow">Arrow Ready</span></div>
       </div>
       <div id="posText">Position: (1, 1) · Facing East</div>
@@ -906,7 +888,7 @@ function addLog(stepN,action,reasoning){
 function updStatus(ag,stepN){
   document.getElementById('dAlive').className='sdotst'+(ag.alive?'':' d');
   document.getElementById('tAlive').textContent=ag.alive?'Alive':'Dead';
-  document.getElementById('dGold').className='sdotst g'+(ag.gold?' on':'');
+  document.getElementById('dGold').className='sdotst'+(ag.gold?' g':' off');
   document.getElementById('tGold').textContent=ag.gold?'Gold (carried)':'No Gold';
   document.getElementById('dArrow').className='sdotst'+(ag.arrow?'':' off');
   document.getElementById('tArrow').textContent=ag.arrow?'Arrow Ready':'Arrow Used';
@@ -918,6 +900,7 @@ function setStatus(m){ document.getElementById('statusMsg').textContent=m; }
 function updPhase(n){
   for(let i=1;i<=3;i++){
     const el=document.getElementById(`ph${i}`);
+    if(!el) continue;
     el.className='pdot'+(i<n?' done':i===n?' active':'');
   }
 }

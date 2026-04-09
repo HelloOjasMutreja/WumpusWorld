@@ -64,12 +64,6 @@ body::after{
   font-size:0.72rem;letter-spacing:0.35em;text-transform:uppercase;
   color:var(--dim);margin-top:3px;font-family:'Cinzel',serif;
 }
-/* ── PHASE DOTS ── */
-.phases{display:flex;gap:10px;justify-content:center;margin-bottom:10px;align-items:center;}
-.pdot{width:7px;height:7px;border-radius:50%;background:var(--border);transition:all 0.4s;}
-.pdot.active{background:var(--accent);box-shadow:0 0 8px var(--accent);}
-.pdot.done{background:var(--safe);}
-.plabel{font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:0.2em;color:var(--dim);text-transform:uppercase;}
 /* ── MAIN LAYOUT ── */
 .main{display:grid;grid-template-columns:380px 280px;gap:14px;flex:1;min-height:0;width:min(100%,960px);}
 /* ── GRID PANEL ── */
@@ -169,7 +163,7 @@ body::after{
 .sdotst{width:5px;height:5px;border-radius:50%;background:var(--safe);flex-shrink:0;}
 .sdotst.d{background:var(--danger);}
 .sdotst.g{background:var(--gold);}
-.sdotst.off{background:var(--dim);}
+.sdotst.off{background:var(--dim);opacity:0.4;}
 #posText{margin-top:7px;font-size:0.72rem;color:var(--dim);font-style:italic;}
 /* Percepts */
 .percg{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
@@ -303,13 +297,12 @@ body::after{
 @media (max-width: 560px){
   body{padding:8px;}
   .hdr{flex-direction:column;align-items:flex-start;gap:6px;}
-  .phases{margin-left:0;justify-content:flex-start;flex-wrap:wrap;gap:4px 8px;}
   .main{gap:8px;}
   .status-row{padding:6px 10px;}
   .gp,.card,.log-card{padding:10px;}
   .col-labels{grid-template-columns:14px repeat(4,1fr);gap:2px;}
   .grid-rows{gap:2px;}
-  .cl,.plabel,#statusMsg,#posText,.li,.pi,.ln,.la .ar{font-size:clamp(0.55rem,2.2vw,0.72rem);}
+  .cl,#statusMsg,#posText,.li,.pi,.ln,.la .ar{font-size:clamp(0.55rem,2.2vw,0.72rem);}
   .ci{font-size:1.25rem;}
   .dirarr{font-size:0.66rem;}
   .btn{padding:7px 10px;}
@@ -334,14 +327,6 @@ body::after{
 <div class="hdr">
   <h1>WUMPUS WORLD</h1>
   <div class="sub">Logic · Inference · Survival</div>
-</div>
-
-<div class="phases">
-  <div class="pdot active" id="ph1"></div>
-  <div class="plabel" id="ph-lbl">Map Generation</div>
-  <div class="pdot" id="ph2"></div>
-  <div class="plabel">Exploration</div>
-  <div class="pdot" id="ph3"></div>
 </div>
 
 <div class="main">
@@ -381,7 +366,7 @@ body::after{
       <div class="ctitle">Agent Status</div>
       <div class="sbar">
         <div class="si"><div class="sdotst" id="dAlive"></div><span id="tAlive">Alive</span></div>
-        <div class="si"><div class="sdotst g" id="dGold"></div><span id="tGold">No Gold</span></div>
+        <div class="si"><div class="sdotst off" id="dGold"></div><span id="tGold">No Gold</span></div>
         <div class="si"><div class="sdotst" id="dArrow"></div><span id="tArrow">Arrow Ready</span></div>
       </div>
       <div id="posText">Position: (1, 1) · Facing East</div>
@@ -907,7 +892,7 @@ function addLog(stepN,action,reasoning){
 function updStatus(ag,stepN){
   document.getElementById('dAlive').className='sdotst'+(ag.alive?'':' d');
   document.getElementById('tAlive').textContent=ag.alive?'Alive':'Dead';
-  document.getElementById('dGold').className='sdotst g'+(ag.gold?' on':'');
+  document.getElementById('dGold').className='sdotst'+(ag.gold?' g':' off');
   document.getElementById('tGold').textContent=ag.gold?'Gold ✓':'No Gold';
   document.getElementById('dArrow').className='sdotst'+(ag.arrow?'':' off');
   document.getElementById('tArrow').textContent=ag.arrow?'Arrow Ready':'Arrow Used';
@@ -919,6 +904,7 @@ function setStatus(m){ document.getElementById('statusMsg').textContent=m; }
 function updPhase(n){
   for(let i=1;i<=3;i++){
     const el=document.getElementById(`ph${i}`);
+    if(!el) continue;
     el.className='pdot'+(i<n?' done':i===n?' active':'');
   }
 }
