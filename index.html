@@ -49,7 +49,6 @@ body{
   margin-bottom:8px;flex-shrink:0;
   width:100%;max-width:960px;
 }
-.hdr-title{}
 .hdr h1{
   font-size:1.45rem;font-weight:700;letter-spacing:0.1em;
   color:var(--accent);line-height:1;
@@ -82,7 +81,6 @@ body{
 .td:nth-child(2){animation-delay:0.2s;}
 .td:nth-child(3){animation-delay:0.4s;}
 @keyframes td{0%,80%,100%{transform:scale(1);opacity:0.3;}40%{transform:scale(1.5);opacity:1;}}
-#statsT{font-size:0.66rem;white-space:nowrap;font-weight:500;color:var(--dim);}
 
 /* ── MAIN LAYOUT ── */
 .main{
@@ -105,9 +103,9 @@ body{
 .grid-wrap{flex:1;display:flex;flex-direction:column;min-height:0;}
 .col-labels{display:grid;grid-template-columns:18px repeat(4,1fr);margin-bottom:3px;flex-shrink:0;}
 .cl{font-size:0.56rem;color:var(--dim);text-align:center;font-weight:600;opacity:0.65;}
-.grid-rows{display:flex;flex:1;min-height:0;align-items:stretch;gap:3px;}
-.row-lbls{display:grid;grid-template-rows:repeat(4,1fr);width:18px;flex-shrink:0;}
-.rl{font-size:0.56rem;color:var(--dim);text-align:right;line-height:1;font-weight:600;opacity:0.65;display:flex;align-items:center;justify-content:flex-end;}
+.grid-rows{display:block;flex:1;min-height:0;}
+.row-lbls{display:none;}
+.rl{display:none;}
 .wg{
   flex:1;
   aspect-ratio:1/1;
@@ -314,8 +312,7 @@ body{
   .status-row{padding:6px 10px;}
   .gp,.card,.log-card{padding:10px;}
   .col-labels{grid-template-columns:14px repeat(4,1fr);}
-  .row-lbls{width:14px;}
-  .cl,.rl,.plabel,#statsT,#statusMsg,#posText,.li,.pi,.ln,.la .ar{font-size:clamp(0.55rem,2.2vw,0.72rem);}
+  .cl,.plabel,#statusMsg,#posText,.li,.pi,.ln,.la .ar{font-size:clamp(0.55rem,2.2vw,0.72rem);}
   .ci{font-size:1.25rem;}
   .dirarr{font-size:0.66rem;}
   .btn{padding:7px 10px;}
@@ -344,7 +341,6 @@ body{
   <div class="think" id="thinkEl" style="display:none">
     <div class="td"></div><div class="td"></div><div class="td"></div>
   </div>
-  <div id="statsT">—</div>
 </div>
 
 <div class="main">
@@ -357,9 +353,6 @@ body{
         <div class="cl">A</div><div class="cl">B</div><div class="cl">C</div><div class="cl">D</div>
       </div>
       <div class="grid-rows">
-        <div class="row-lbls">
-          <div class="rl">4</div><div class="rl">3</div><div class="rl">2</div><div class="rl">1</div>
-        </div>
         <div class="wg" id="wgrid"></div>
       </div>
     </div>
@@ -409,7 +402,6 @@ body{
     <div class="log-card">
       <div class="ctitle">
         <span>Action Log</span>
-        <span id="stepCnt" style="color:var(--accent);font-size:0.62rem;font-weight:700">Step 0</span>
       </div>
       <div class="log-scroll" id="aLog"></div>
     </div>
@@ -876,7 +868,6 @@ function updStatus(ag,stepN){
   document.getElementById('dArrow').className='sdotst'+(ag.arrow?'':' off');
   document.getElementById('tArrow').textContent=ag.arrow?'Arrow Ready':'Arrow Used';
   document.getElementById('posText').textContent=`Position: (${colLabel(ag.c)}, ${4-ag.r}) · Facing ${DNAME[ag.dir]}`;
-  document.getElementById('stepCnt').textContent=`Step ${stepN}`;
 }
 
 function setStatus(m){ document.getElementById('statusMsg').textContent=m; }
@@ -928,7 +919,6 @@ function generateNewMap(){
   document.getElementById('gTitle').textContent='The Cave — Full Survey (Memorise!)';
   updPercepts(null);
   updStatus({r:3,c:0,dir:0,alive:true,gold:false,arrow:true,climbed:false},0);
-  document.getElementById('statsT').textContent='—';
   document.getElementById('peekOv').style.display='flex';
 
   let t=5;
@@ -1007,7 +997,6 @@ function execStep(){
     updStatus(step.ag,si);
     addLog(si,step.action,step.reasoning);
     setStatus(step.reasoning);
-    document.getElementById('statsT').textContent=`${step.kb.vis.size} explored · ${step.kb.safe.size} safe known`;
 
     const floatMap={
       GRAB:['GOLD!','var(--gold)'],
